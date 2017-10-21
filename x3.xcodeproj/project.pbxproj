@@ -27,12 +27,12 @@
 		2F7D36CF1F9C0D120049504F /* x3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = x3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F7D36D71F9C0D120049504F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		2F7D36DF1F9C0D120049504F /* x3Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = x3Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		2F7D36EE1F9C0DA00049504F /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Sources/AppDelegate.swift; sourceTree = SOURCE_ROOT; };
+		2F7D36EE1F9C0DA00049504F /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Sources/AppDelegate.swift; sourceTree = SOURCE_ROOT; tabWidth = 4; };
 		2F7D36EF1F9C0DA00049504F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Sources/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		2F7D36F01F9C0DA00049504F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Sources/Info.plist; sourceTree = SOURCE_ROOT; };
 		2F7D36F11F9C0DA00049504F /* x3.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = x3.entitlements; path = Sources/x3.entitlements; sourceTree = SOURCE_ROOT; };
 		2F7D36F21F9C0DA00049504F /* Base.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Base.lproj; path = Sources/Base.lproj; sourceTree = SOURCE_ROOT; };
-		2F7D36F71F9C0DBF0049504F /* x3Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = x3Tests.swift; path = Tests/x3Tests.swift; sourceTree = SOURCE_ROOT; };
+		2F7D36F71F9C0DBF0049504F /* x3Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.swift; name = x3Tests.swift; path = Tests/x3Tests.swift; sourceTree = SOURCE_ROOT; tabWidth = 4; };
 		2F7D36F81F9C0DBF0049504F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Tests/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
