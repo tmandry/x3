@@ -7,13 +7,24 @@
 //
 
 import Cocoa
+import AXSwift
+import Swindler
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
     @IBOutlet weak var window: NSWindow!
 
+    var manager: WindowManager?
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Insert code here to initialize your application
+        guard AXSwift.checkIsProcessTrusted(prompt: true) else {
+            print("Not trusted as an AX process; please authorize and re-launch")
+            NSApp.terminate(self)
+            return
+        }
+
+        let state = Swindler.state
+        manager = WindowManager(state: state)
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
