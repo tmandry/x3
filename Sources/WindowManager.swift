@@ -7,20 +7,40 @@ enum Layout {
     case Stacked
 }
 
+// The contents of a Node.
+enum NodeContents {
+    case Window(Swindler.Window)
+    case Parent(Layout, [Node])
+}
+
+// The contents of a Node that has been removed; these can be added to a new ParentNode.
+enum MovingContents {
+    case Window(Swindler.Window)
+    case Parent(Layout, [Node])
+}
+
 class Node {
     // TODO: Create parallel enums, one representing contents that belong to a node, another
     // representing "released" contents, to make moving contents around safer.
     var contents: NodeContents
     var parent: ParentNode?
 
-    fileprivate init(_ contents: NodeContents) {
-        self.contents = contents
+    fileprivate init(_ contents: MovingContents) {
+        self.contents = Node.fromMoving(contents)
     }
 
-    init(_ contents: NodeContents, parent: ParentNode)
-    {
-        self.contents = contents
+    init(_ contents: MovingContents, parent: ParentNode) {
+        self.contents = Node.fromMoving(contents)
         self.parent = parent
+    }
+
+    private static func fromMoving(_ contents: MovingContents) -> NodeContents {
+        switch contents {
+        case .Parent(let layout, let children):
+            return .Parent(layout, children)
+        case .Window(let window):
+            return .Window(window)
+        }
     }
 
     func contains(window: Swindler.Window) -> Bool {
@@ -29,6 +49,18 @@ class Node {
             return children.contains(where: {$0.contains(window: window)})
         case .Window(let myWindow):
             return myWindow == window
+        }
+    }
+
+    // Removes the contents from this node so they can be moved to another.
+    func take() -> MovingContents {
+        let myContents = contents
+        contents = .Parent(.Horizontal, [])  // filler
+        switch myContents {
+        case .Parent(let layout, let children):
+            return .Parent(layout, children)
+        case .Window(let window):
+            return .Window(window)
         }
     }
 }
@@ -42,14 +74,12 @@ class ParentNode: Node {
         }
     }
 
-    func addChild(_ child: NodeContents) {
-        switch contents {
-        case .Parent(let layout, var children):
-            children.append(Node(child, parent: self))
-            contents = .Parent(layout, children)
-        case .Window:
-            fatalError("Can't addChild on a Window node")
+    func addChild(_ child: MovingContents) {
+        guard let contents = .Parent(let layout, var children) else {
+            fatalError("ParentNode can't have non-parent contents")
         }
+        children.append(Node(child, parent: self))
+        contents = .Parent(layout, children)
     }
 }
 
@@ -57,11 +87,6 @@ extension Node: CustomDebugStringConvertible {
     var debugDescription: String {
         return String(describing: contents)
     }
-}
-
-enum NodeContents {
-    case Window(Swindler.Window)
-    indirect case Parent(Layout, [Node])
 }
 
 class WindowManager {
