@@ -63,8 +63,7 @@ class HotKeyManager {
     }
 }
 
-private func fourCharCodeFrom(_ string : String) -> FourCharCode
-{
+private func fourCharCodeFrom(_ string : String) -> FourCharCode {
     assert(string.characters.count == 4, "String length must be 4")
     var result : FourCharCode = 0
     for char in string.utf16 {

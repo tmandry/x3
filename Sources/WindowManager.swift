@@ -19,22 +19,29 @@ enum MovingContents {
     case Parent(Layout, [Node])
 }
 
+struct Tree {
+    let root: ParentNode
+    init() {
+        root = ParentNode(.Horizontal, [], nil)
+    }
+}
+
 class Node {
     // TODO: Create parallel enums, one representing contents that belong to a node, another
     // representing "released" contents, to make moving contents around safer.
     var contents: NodeContents
     var parent: ParentNode?
 
-    fileprivate init(_ contents: MovingContents) {
+    fileprivate init(_ contents: NodeContents) {
         self.contents = Node.fromMoving(contents)
     }
 
-    init(_ contents: MovingContents, parent: ParentNode) {
+    fileprivate init(_ contents: NodeContents, parent: ParentNode) {
         self.contents = Node.fromMoving(contents)
         self.parent = parent
     }
 
-    private static func fromMoving(_ contents: MovingContents) -> NodeContents {
+    private static func fromMoving(_ contents: NodeContents) -> NodeContents {
         switch contents {
         case .Parent(let layout, let children):
             return .Parent(layout, children)
@@ -51,22 +58,21 @@ class Node {
             return myWindow == window
         }
     }
+}
 
-    // Removes the contents from this node so they can be moved to another.
-    func take() -> MovingContents {
-        let myContents = contents
-        contents = .Parent(.Horizontal, [])  // filler
-        switch myContents {
-        case .Parent(let layout, let children):
-            return .Parent(layout, children)
-        case .Window(let window):
-            return .Window(window)
-        }
+struct MovingNode {
+    let node: Node
+    fileprivate init(_ node: Node) {
+        self.node = node
     }
 }
 
 class ParentNode: Node {
-    init(_ type: Layout, _ children: [Node], parent: ParentNode?) {
+    enum InsertionPolicy {
+        case end
+    }
+
+    fileprivate init(_ type: Layout, _ children: [Node], parent: ParentNode?) {
         if let parent = parent {
             super.init(.Parent(type, children), parent: parent)
         } else {
@@ -74,12 +80,46 @@ class ParentNode: Node {
         }
     }
 
-    func addChild(_ child: MovingContents) {
-        guard let contents = .Parent(let layout, var children) else {
+    func createChild(contents childContents: NodeContents, at: InsertionPolicy) -> Node {
+        var node: Node?
+        switch childContents {
+        case .Parent(let layout, let children):
+            node = ParentNode(layout, children, parent: self)
+        case .Window(let window):
+            node = Node(childContents, parent: self)
+        }
+        switch contents {
+        case .Parent(let layout, var children):
+            children.append(node!)
+            contents = .Parent(layout, children)
+        default:
             fatalError("ParentNode can't have non-parent contents")
         }
-        children.append(Node(child, parent: self))
-        contents = .Parent(layout, children)
+        return node!
+    }
+
+    func addChild(_ child: MovingNode) {
+        switch contents {
+        case .Parent(let layout, var children):
+            children.append(Node(child.node.contents, parent: self))
+            contents = .Parent(layout, children)
+        default:
+            fatalError("ParentNode can't have non-parent contents")
+        }
+    }
+
+    func removeChild(_ node: Node) -> MovingNode? {
+        switch contents {
+        case .Parent(let layout, var children):
+            guard let index = children.index(where: {$0 === node}) else {
+                return nil
+            }
+            children.remove(at: index)
+            contents = .Parent(layout, children)
+            return MovingNode(node)
+        default:
+            fatalError("ParentNode can't have non-parent contents")
+        }
     }
 }
 
@@ -114,7 +154,7 @@ class WindowManager {
                 self.state.frontmostApplication.value?.mainWindow.value?.title.value))
             if let window = self.state.frontmostApplication.value?.mainWindow.value {
                 if !self.tree.contains(window: window) {
-                    self.tree.addChild(.Window(window))
+                    self.tree.addChild(MovingNode(Node(.Window(window))))
                 }
                 debugPrint(String(describing: self.tree))
             }
