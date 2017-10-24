@@ -8,7 +8,7 @@ class WindowManager {
 
     init(state: Swindler.State) {
         self.state = state
-        self.tree = Tree()
+        self.tree = Tree(screen: state.screens.last!)
 
         //NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
         //    debugPrint("Got event: \(event)")
@@ -30,6 +30,9 @@ class WindowManager {
                 }
                 debugPrint(String(describing: self.tree))
             }
+        }
+        hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey) {
+            self.tree.refresh()
         }
     }
 }
