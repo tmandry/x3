@@ -2,141 +2,150 @@ import Carbon
 import Swindler
 
 enum Layout {
-    case Horizontal
-    case Vertical
-    case Stacked
-}
-
-// The contents of a Node.
-enum NodeContents {
-    case Window(Swindler.Window)
-    case Parent(Layout, [Node])
-}
-
-// The contents of a Node that has been removed; these can be added to a new ParentNode.
-enum MovingContents {
-    case Window(Swindler.Window)
-    case Parent(Layout, [Node])
+    case horizontal
+    case vertical
+    case stacked
 }
 
 struct Tree {
-    let root: ParentNode
+    let root: ContainerNode
     init() {
-        root = ParentNode(.Horizontal, [], nil)
+        root = ContainerNode(.horizontal, parent: nil)
     }
 }
 
 class Node {
-    // TODO: Create parallel enums, one representing contents that belong to a node, another
-    // representing "released" contents, to make moving contents around safer.
-    var contents: NodeContents
-    var parent: ParentNode?
+    private var parent_: ContainerNode?
+    var parent: ContainerNode? { return parent_ }
 
-    fileprivate init(_ contents: NodeContents) {
-        self.contents = Node.fromMoving(contents)
+    fileprivate init(parent: ContainerNode?) {
+        self.parent_ = parent
     }
 
-    fileprivate init(_ contents: NodeContents, parent: ParentNode) {
-        self.contents = Node.fromMoving(contents)
-        self.parent = parent
-    }
-
-    private static func fromMoving(_ contents: NodeContents) -> NodeContents {
-        switch contents {
-        case .Parent(let layout, let children):
-            return .Parent(layout, children)
-        case .Window(let window):
-            return .Window(window)
-        }
-    }
-
-    func contains(window: Swindler.Window) -> Bool {
-        switch contents {
-        case .Parent(_, let children):
-            return children.contains(where: {$0.contains(window: window)})
-        case .Window(let myWindow):
-            return myWindow == window
-        }
+    fileprivate func reparent(newParent: ContainerNode) {
+        assert(parent != nil)
+        // TODO: Assert this node has already been removed from parent
+        parent_ = newParent
     }
 }
 
+protocol NodeType: class {
+    var parent: ContainerNode? { get }
+    func contains(window: Swindler.Window) -> Bool
+}
+
 struct MovingNode {
-    let node: Node
-    fileprivate init(_ node: Node) {
+    let node: NodeKind
+    fileprivate init(_ node: NodeKind) {
         self.node = node
     }
 }
 
-class ParentNode: Node {
-    enum InsertionPolicy {
-        case end
-    }
+enum NodeKind {
+    case container(ContainerNode)
+    case window(WindowNode)
 
-    fileprivate init(_ type: Layout, _ children: [Node], parent: ParentNode?) {
-        if let parent = parent {
-            super.init(.Parent(type, children), parent: parent)
-        } else {
-            super.init(.Parent(type, children))
-        }
-    }
-
-    func createChild(contents childContents: NodeContents, at: InsertionPolicy) -> Node {
-        var node: Node?
-        switch childContents {
-        case .Parent(let layout, let children):
-            node = ParentNode(layout, children, parent: self)
-        case .Window(let window):
-            node = Node(childContents, parent: self)
-        }
-        switch contents {
-        case .Parent(let layout, var children):
-            children.append(node!)
-            contents = .Parent(layout, children)
-        default:
-            fatalError("ParentNode can't have non-parent contents")
-        }
-        return node!
-    }
-
-    func addChild(_ child: MovingNode) {
-        switch contents {
-        case .Parent(let layout, var children):
-            children.append(Node(child.node.contents, parent: self))
-            contents = .Parent(layout, children)
-        default:
-            fatalError("ParentNode can't have non-parent contents")
-        }
-    }
-
-    func removeChild(_ node: Node) -> MovingNode? {
-        switch contents {
-        case .Parent(let layout, var children):
-            guard let index = children.index(where: {$0 === node}) else {
-                return nil
-            }
-            children.remove(at: index)
-            contents = .Parent(layout, children)
-            return MovingNode(node)
-        default:
-            fatalError("ParentNode can't have non-parent contents")
+    var node: NodeType {
+        switch self {
+        case .container(let node):
+            return node
+        case .window(let node):
+            return node
         }
     }
 }
 
-extension Node: CustomDebugStringConvertible {
+class ContainerNode: Node {
+    let layout: Layout
+    var children: [NodeKind] { return children_ }
+
+    private var children_: [NodeKind]
+
+    enum InsertionPolicy {
+        case end
+    }
+
+    fileprivate init(_ type: Layout, parent: ContainerNode?) {
+        self.layout = type
+        self.children_ = []
+        super.init(parent: parent)
+    }
+
+    @discardableResult
+    func createContainerChild(layout: Layout, at: InsertionPolicy) -> ContainerNode {
+        let node = ContainerNode(layout, parent: self)
+        children_.append(.container(node))
+        return node
+    }
+
+    @discardableResult
+    func createWindowChild(_ window: Swindler.Window, at: InsertionPolicy) -> WindowNode {
+        let node = WindowNode(window, parent: self)
+        children_.append(.window(node))
+        return node
+    }
+
+    func addChild(_ child: MovingNode, at: InsertionPolicy) {
+        switch child.node {
+        case .container(let node):
+            node.reparent(newParent: self)
+        case .window(let node):
+            node.reparent(newParent: self)
+        }
+        children_.append(child.node)
+    }
+
+    func removeChild(_ node: Node) -> MovingNode? {
+        guard let index = children.index(where: {$0.node === node}) else {
+            return nil
+        }
+        let movingNode = MovingNode(children[index])
+        children_.remove(at: index)
+        return movingNode
+    }
+}
+
+extension ContainerNode: NodeType {
+    func contains(window: Swindler.Window) -> Bool {
+        return children.contains(where: {$0.node.contains(window: window)})
+    }
+}
+
+class WindowNode: Node {
+    let window: Swindler.Window
+
+    fileprivate init(_ window: Swindler.Window, parent: ContainerNode) {
+        self.window = window
+        super.init(parent: parent)
+    }
+}
+
+extension WindowNode: NodeType {
+    func contains(window: Swindler.Window) -> Bool {
+        return self.window == window
+    }
+}
+
+extension ContainerNode: CustomDebugStringConvertible {
     var debugDescription: String {
-        return String(describing: contents)
+        return "\(layout), \(String(describing: children.map{$0.node}))"
+    }
+}
+
+extension WindowNode: CustomDebugStringConvertible {
+    var debugDescription: String {
+        return String(describing: window)
     }
 }
 
 class WindowManager {
     var state: Swindler.State
-    var tree: ParentNode
+    var tree: Tree
     let hotKeys: HotKeyManager
 
     init(state: Swindler.State) {
         self.state = state
-        tree = ParentNode(.Horizontal, [], parent: nil)
+        self.tree = Tree()
 
         //NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
         //    debugPrint("Got event: \(event)")
@@ -153,8 +162,8 @@ class WindowManager {
             debugPrint(String(describing:
                 self.state.frontmostApplication.value?.mainWindow.value?.title.value))
             if let window = self.state.frontmostApplication.value?.mainWindow.value {
-                if !self.tree.contains(window: window) {
-                    self.tree.addChild(MovingNode(Node(.Window(window))))
+                if !self.tree.root.contains(window: window) {
+                    self.tree.root.createWindowChild(window, at: .end)
                 }
                 debugPrint(String(describing: self.tree))
             }
