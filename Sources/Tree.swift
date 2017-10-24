@@ -14,29 +14,34 @@ struct Tree {
 }
 
 class Node {
-    private var parent_: ContainerNode?
-    var parent: ContainerNode? { return parent_ }
+    private(set) var parent: ContainerNode?
 
     fileprivate init(parent: ContainerNode?) {
-        self.parent_ = parent
+        self.parent = parent
     }
 
     fileprivate func reparent(newParent: ContainerNode) {
         assert(parent != nil)
         // TODO: Assert this node has already been removed from parent
-        parent_ = newParent
+        parent = newParent
     }
+
+    // Primarily for internal use.
+    var base: Node { return self }
 }
 
 protocol NodeType: class {
     var parent: ContainerNode? { get }
     func contains(window: Swindler.Window) -> Bool
+
+    // Primarily for internal use.
+    var base: Node { get }
 }
 
 struct MovingNode {
-    let node: NodeKind
+    let kind: NodeKind
     fileprivate init(_ node: NodeKind) {
-        self.node = node
+        self.kind = node
     }
 }
 
@@ -56,9 +61,7 @@ enum NodeKind {
 
 class ContainerNode: Node {
     let layout: Layout
-    var children: [NodeKind] { return children_ }
-
-    private var children_: [NodeKind]
+    private(set) var children: [NodeKind]
 
     enum InsertionPolicy {
         case end
@@ -66,32 +69,27 @@ class ContainerNode: Node {
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
         self.layout = type
-        self.children_ = []
+        self.children = []
         super.init(parent: parent)
     }
 
     @discardableResult
     func createContainerChild(layout: Layout, at: InsertionPolicy) -> ContainerNode {
         let node = ContainerNode(layout, parent: self)
-        children_.append(.container(node))
+        children.append(.container(node))
         return node
     }
 
     @discardableResult
     func createWindowChild(_ window: Swindler.Window, at: InsertionPolicy) -> WindowNode {
         let node = WindowNode(window, parent: self)
-        children_.append(.window(node))
+        children.append(.window(node))
         return node
     }
 
     func addChild(_ child: MovingNode, at: InsertionPolicy) {
-        switch child.node {
-        case .container(let node):
-            node.reparent(newParent: self)
-        case .window(let node):
-            node.reparent(newParent: self)
-        }
-        children_.append(child.node)
+        child.kind.node.base.reparent(newParent: self)
+        children.append(child.kind)
     }
 
     func removeChild(_ node: Node) -> MovingNode? {
@@ -99,7 +97,7 @@ class ContainerNode: Node {
             return nil
         }
         let movingNode = MovingNode(children[index])
-        children_.remove(at: index)
+        children.remove(at: index)
         return movingNode
     }
 }
