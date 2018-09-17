@@ -19,6 +19,7 @@ PODS:
 
 DEPENDENCIES:
   - Nimble (~> 7.3.0)
+  - PromiseKit
   - Quick (~> 1.3.0)
   - Swindler (from `./Swindler`)
 
@@ -40,6 +41,6 @@ SPEC CHECKSUMS:
   Quick: d17304d58d0d169dd0bd1c6e5c28e3318de32a1a
   Swindler: dbd4981b5febf70f9bb63cd24d1308c9fdd119f0
 
-PODFILE CHECKSUM: 2ee2527ff9912bc379ab496c005435caa0a847a8
+PODFILE CHECKSUM: fc9a05dbc47ee67160918bda6650d4dcb55fc68a
 
 COCOAPODS: 1.5.3

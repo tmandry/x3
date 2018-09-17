@@ -15,7 +15,7 @@ struct Tree {
     }
 
     func refresh() {
-        root.refresh(rect: screen.frame)
+        root.refresh(rect: screen.applicationFrame)
     }
 }
 
