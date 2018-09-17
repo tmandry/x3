@@ -96,8 +96,8 @@ class WindowNode: Node {
 
 private extension String {
     func truncate(length: Int, trailing: String = "…") -> String {
-        if self.characters.count > length {
-            return String(self.characters.prefix(length)) + trailing
+        if self.count > length {
+            return String(self.prefix(length)) + trailing
         } else {
             return self
         }
