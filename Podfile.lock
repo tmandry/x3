@@ -1,5 +1,5 @@
 PODS:
-  - AXSwift (0.2.0)
+  - AXSwift (0.2.2)
   - PromiseKit (4.4.0):
     - PromiseKit/Foundation (= 4.4.0)
     - PromiseKit/QuartzCore (= 4.4.0)
@@ -12,21 +12,26 @@ PODS:
   - PromiseKit/UIKit (4.4.0):
     - PromiseKit/CorePromise
   - Swindler (0.0.1):
-    - AXSwift (= 0.2.0)
+    - AXSwift (= 0.2.2)
     - PromiseKit (= 4.4.0)
 
 DEPENDENCIES:
   - Swindler (from `./Swindler`)
 
+SPEC REPOS:
+  https://github.com/cocoapods/specs.git:
+    - AXSwift
+    - PromiseKit
+
 EXTERNAL SOURCES:
   Swindler:
-    :path: ./Swindler
+    :path: "./Swindler"
 
 SPEC CHECKSUMS:
-  AXSwift: b53ace49696c103adf962e416350eb8fe2d782b5
+  AXSwift: 495d2ae44b4351f98b94c63337d69989fa4a7978
   PromiseKit: ecf5fe92275d57ee77c9ede858af47a162e9b97e
-  Swindler: cb6cf2553767638408ad015eaa1a5cf336375c5e
+  Swindler: dbd4981b5febf70f9bb63cd24d1308c9fdd119f0
 
 PODFILE CHECKSUM: 4dfa43573994c5c99eb723f7eb1666e77d6938e3
 
-COCOAPODS: 1.3.1
+COCOAPODS: 1.5.3

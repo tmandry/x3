@@ -149,7 +149,6 @@
 				2F7D36CC1F9C0D120049504F /* Frameworks */,
 				2F7D36CD1F9C0D120049504F /* Resources */,
 				25FE57AE4979438C635D80F4 /* [CP] Embed Pods Frameworks */,
-				9D97684E17C7C1B5167BB3D5 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -168,8 +167,6 @@
 				2F7D36DB1F9C0D120049504F /* Sources */,
 				2F7D36DC1F9C0D120049504F /* Frameworks */,
 				2F7D36DD1F9C0D120049504F /* Resources */,
-				B13BBC9FECF8ED1F1BCB7C5F /* [CP] Embed Pods Frameworks */,
-				A812FC1C91398E9CCB898007 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -262,51 +259,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3/Pods-x3-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		9D97684E17C7C1B5167BB3D5 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3/Pods-x3-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		A812FC1C91398E9CCB898007 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		B13BBC9FECF8ED1F1BCB7C5F /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		B76F7FFC6CA505F2CAFEC395 /* [CP] Check Pods Manifest.lock */ = {
