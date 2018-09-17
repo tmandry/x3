@@ -167,6 +167,7 @@
 				2F7D36DB1F9C0D120049504F /* Sources */,
 				2F7D36DC1F9C0D120049504F /* Frameworks */,
 				2F7D36DD1F9C0D120049504F /* Resources */,
+				936A5CA33F5897548E179DDC /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -259,6 +260,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3/Pods-x3-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		936A5CA33F5897548E179DDC /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${SRCROOT}/Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/Nimble/Nimble.framework",
+				"${BUILT_PRODUCTS_DIR}/Quick/Quick.framework",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Nimble.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Quick.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		B76F7FFC6CA505F2CAFEC395 /* [CP] Check Pods Manifest.lock */ = {
@@ -484,7 +505,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 92363AAF22D43B63F36574FF /* Pods-x3Tests.debug.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -501,7 +522,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 39CEDA40B8BCDD89ADB0152E /* Pods-x3Tests.release.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;

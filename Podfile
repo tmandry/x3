@@ -10,7 +10,8 @@ target 'x3' do
 
   target 'x3Tests' do
     inherit! :search_paths
-    # Pods for testing
+    pod 'Nimble', '~> 7.3.0'
+    pod 'Quick', '~> 1.3.0'
   end
 
 end
