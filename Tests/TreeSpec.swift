@@ -58,6 +58,27 @@ class TreeSpec: QuickSpec {
                 expect(c.rect).toEventually(equal(r(x: 1333, y: 10, w: 667, h: 1000)))
             }
 
+            it("removes windows when they are destroyed") {
+                let anode = tree.root.createWindowChild(a.window, at: .end)
+                let bnode = tree.root.createWindowChild(b.window, at: .end)
+                let cnode = tree.root.createWindowChild(c.window, at: .end)
+                tree.refresh()
+
+                bnode.destroy()
+                tree.refresh()
+
+                expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
+                expect(c.rect).toEventually(equal(r(x: 1000, y: 10, w: 1000, h: 1000)))
+
+                anode.destroy()
+                tree.refresh()
+
+                expect(c.rect).toEventually(equal(r(x: 0, y: 10, w: 2000, h: 1000)))
+
+                // Test that we don't crash upon destroying the last window.
+                cnode.destroy()
+                tree.refresh()
+            }
 
             it("allows nesting a horizontal container inside horizontal") {
                 tree.root.createWindowChild(a.window, at: .end)

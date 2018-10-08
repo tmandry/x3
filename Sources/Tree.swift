@@ -17,6 +17,10 @@ struct Tree {
     func refresh() {
         root.refresh(rect: screen.applicationFrame)
     }
+
+    func find(window: Swindler.Window) -> WindowNode? {
+        return root.find(window: window)
+    }
 }
 
 class Node {
@@ -40,12 +44,19 @@ class Node {
 
 protocol NodeType: class {
     var parent: ContainerNode? { get }
-    func contains(window: Swindler.Window) -> Bool
+
+    func find(window: Swindler.Window) -> WindowNode?
 
     func refresh(rect: CGRect)
 
     // Primarily for internal use.
     var base: Node { get }
+}
+
+extension NodeType {
+    func contains(window: Swindler.Window) -> Bool {
+        return self.find(window: window) != nil
+    }
 }
 
 struct MovingNode {
@@ -91,6 +102,10 @@ class WindowNode: Node {
     fileprivate init(_ window: Swindler.Window, parent: ContainerNode) {
         self.window = window
         super.init(parent: parent)
+    }
+
+    func destroy() {
+        let _ = self.parent!.removeChild(self)
     }
 }
 
@@ -160,13 +175,16 @@ extension ContainerNode {
     }
 }
 extension ContainerNode {
-    func contains(window: Swindler.Window) -> Bool {
-        return children.contains(where: {$0.node.contains(window: window)})
+    func find(window: Swindler.Window) -> WindowNode? {
+        return children.compactMap({$0.node.find(window: window)}).first
     }
 }
 extension WindowNode {
-    func contains(window: Swindler.Window) -> Bool {
-        return self.window == window
+    func find(window: Swindler.Window) -> WindowNode? {
+        if self.window == window {
+            return self
+        }
+        return nil
     }
 }
 
@@ -185,7 +203,6 @@ extension ContainerNode {
     }
     fileprivate func onRemoveNodeAdjustSize() {
         if children.count == 0 {
-            children[0].base.size = 1.0
             return
         }
         let scale = Float(children.count + 1) / Float(children.count)
