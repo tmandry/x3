@@ -17,7 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var manager: WindowManager?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        guard AXSwift.checkIsProcessTrusted(prompt: true) else {
+        // TODO: re-enable prompt; disabled because it gets in the way during testing.
+        guard AXSwift.checkIsProcessTrusted(prompt: false) else {
             print("Not trusted as an AX process; please authorize and re-launch")
             NSApp.terminate(self)
             return
