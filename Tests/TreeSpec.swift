@@ -197,9 +197,8 @@ class TreeSpec: QuickSpec {
             describe("Crawler") {
                 func checkMove(_ direction: Direction, from: FakeWindow, to: FakeWindow,
                                file: String = #file, line: UInt = #line) {
-                    var crawler = Crawler(at: root.find(window: from.window)!)
-                    crawler.move(direction)
-                    expect(crawler.peek(), file: file, line: line).to(equal(
+                    let crawler = Crawler(at: root.find(window: from.window)!)
+                    expect(crawler.move(direction).node, file: file, line: line).to(equal(
                         root.find(window: to.window)!.kind
                     ))
                 }
@@ -227,18 +226,17 @@ class TreeSpec: QuickSpec {
 
                 it("ascends") {
                     var crawl = Crawler(at: root.find(window: d.window)!)
-                    crawl.ascend()
-                    expect(crawl.peek()) == grandchild
-                    crawl.ascend()
-                    expect(crawl.peek()) == child
-                    crawl.ascend()
-                    expect(crawl.peek()) == root.kind
+                    crawl = crawl.ascend()
+                    expect(crawl.node) == grandchild
+                    crawl = crawl.ascend()
+                    expect(crawl.node) == child
+                    crawl = crawl.ascend()
+                    expect(crawl.node) == root.kind
                 }
 
                 it("doesn't move from the root node") {
-                    var crawl = Crawler(at: root.kind)
-                    crawl.move(.down)
-                    expect(crawl.peek()) == root.kind
+                    let crawl = Crawler(at: root.kind)
+                    expect(crawl.move(.down).node) == root.kind
                 }
             }
         }

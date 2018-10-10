@@ -342,7 +342,7 @@ enum Orientation {
 struct Crawler {
     var node: NodeKind?
 
-    init(at: NodeKind) {
+    init(at: NodeKind?) {
         node = at
     }
 
@@ -351,13 +351,13 @@ struct Crawler {
     }
 
     /// Moves the crawler to the current node's parent.
-    mutating func ascend() {
+    func ascend() -> Crawler {
         precondition(node != nil)
-        node = node!.base.parent?.kind
+        return Crawler(at: node!.base.parent?.kind)
     }
 
     /// Moves the crawler in the cardinal direction specified.
-    mutating func move(_ direction: Direction) {
+    func move(_ direction: Direction) -> Crawler {
         // TODO maybe use a weak var to check for deleted?
         precondition(node != nil)
 
@@ -365,7 +365,8 @@ struct Crawler {
         var container = child.base.parent
         guard container != nil else {
             // Nowhere to go from root (or deleted) element.
-            return
+            // TODO should this return nil instead?
+            return self
         }
 
         // Walk up the tree until we're able to move in the right direction (or hit the end).
@@ -375,12 +376,11 @@ struct Crawler {
         }
 
         guard let newContainer = container else {
-            node = nil
-            return
+            return Crawler(at: nil)
         }
 
         let index = newContainer.children.firstIndex(of: child)! + direction.value
-        node = newContainer.children[index]
+        return Crawler(at: newContainer.children[index])
     }
 
     /// Checks whether we can move within `container` along direction `d` from `child`.
@@ -391,10 +391,5 @@ struct Crawler {
         let curIndex = container.children.firstIndex(of: child)!
         let newIndex = curIndex + d.value
         return newIndex >= 0 && newIndex < container.children.count
-    }
-
-    /// Peeks at the node pointed to by the Crawler.
-    func peek() -> NodeKind? {
-        return node
     }
 }
