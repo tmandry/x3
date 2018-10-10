@@ -43,9 +43,11 @@ class Node {
         self.size   = 0.0
     }
 
+    fileprivate func removeFromParent() {
+        parent = nil
+    }
     fileprivate func reparent(newParent: ContainerNode) {
-        assert(parent != nil)
-        // TODO: Assert this node has already been removed from parent
+        assert(parent == nil)
         parent = newParent
     }
 
@@ -88,6 +90,7 @@ extension WindowNode: NodeType {
 struct MovingNode {
     let kind: NodeKind
     fileprivate init(_ node: NodeKind) {
+        assert(node.base.parent == nil)
         self.kind = node
     }
 }
@@ -207,10 +210,10 @@ extension ContainerNode {
         guard let index = children.index(where: {$0.node === node}) else {
             return nil
         }
-        let movingNode = MovingNode(children[index])
-        children.remove(at: index)
+        let node = children.remove(at: index)
+        node.base.removeFromParent()
         onRemoveNodeAdjustSize()
-        return movingNode
+        return MovingNode(node)
     }
 }
 extension ContainerNode {
@@ -337,43 +340,51 @@ enum Orientation {
 
 /// A sort of generalized iterator which crawls the tree in all directions.
 struct Crawler {
-    var container: ContainerNode?
-    var index: Int
+    var node: NodeKind?
 
     init(at: NodeKind) {
-        container = at.base.parent
-        index     = container!.children.index(of: at)!
+        node = at
     }
 
     init(at: NodeType) {
         self.init(at: at.kind)
     }
 
+    /// Moves the crawler to the current node's parent.
+    mutating func ascend() {
+        precondition(node != nil)
+        node = node!.base.parent?.kind
+    }
+
     /// Moves the crawler in the cardinal direction specified.
     mutating func move(_ direction: Direction) {
-        precondition(container != nil)
-        precondition(index < container!.children.count)
+        // TODO maybe use a weak var to check for deleted?
+        precondition(node != nil)
+
+        var child = node!
+        var container = child.base.parent
+        guard container != nil else {
+            // Nowhere to go from root (or deleted) element.
+            return
+        }
 
         // Walk up the tree until we're able to move in the right direction (or hit the end).
-        var child = container!.children[index]
-        while container != nil && !canMove(direction, from: child) {
+        while container != nil && !canMove(direction, in: container!, from: child) {
             child     = NodeKind.container(container!)
             container = container!.parent
         }
 
-        guard let container = container else {
-            // TODO return invalid
-            fatalError("unimplemented")
+        guard let newContainer = container else {
+            node = nil
+            return
         }
 
-        index = container.children.firstIndex(of: child)! + direction.value
+        let index = newContainer.children.firstIndex(of: child)! + direction.value
+        node = newContainer.children[index]
     }
 
-    /// Checks whether we can move within `self.container` along direction `d` from `child`.
-    private func canMove(_ d: Direction, from child: NodeKind) -> Bool {
-        guard let container = container else {
-            return false
-        }
+    /// Checks whether we can move within `container` along direction `d` from `child`.
+    private func canMove(_ d: Direction, in container: ContainerNode, from child: NodeKind) -> Bool {
         if container.layout.orientation != d.orientation {
             return false
         }
@@ -384,12 +395,6 @@ struct Crawler {
 
     /// Peeks at the node pointed to by the Crawler.
     func peek() -> NodeKind? {
-        guard let container = container else {
-            return nil
-        }
-        guard index < container.children.count else {
-            return nil
-        }
-        return container.children[index]
+        return node
     }
 }

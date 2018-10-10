@@ -204,12 +204,15 @@ class TreeSpec: QuickSpec {
                     ))
                 }
 
+                var child, grandchild: NodeKind!
                 beforeEach {
                     root.makeWindow(a.window, at: .end)
                         .makeContainer(layout: .vertical, at: .end) { n in
+                            child = n.kind
                             n.makeWindow(b.window, at: .end)
                              .makeWindow(c.window, at: .end)
                              .makeContainer(layout: .horizontal, at: .end) { n in
+                                 grandchild = n.kind
                                  n.makeWindow(d.window, at: .end)
                                   .makeWindow(e.window, at: .end)
                              }
@@ -220,6 +223,22 @@ class TreeSpec: QuickSpec {
                     checkMove(.right, from: d, to: e)
                     checkMove(.up,    from: d, to: c)
                     checkMove(.left,  from: d, to: a)
+                }
+
+                it("ascends") {
+                    var crawl = Crawler(at: root.find(window: d.window)!)
+                    crawl.ascend()
+                    expect(crawl.peek()) == grandchild
+                    crawl.ascend()
+                    expect(crawl.peek()) == child
+                    crawl.ascend()
+                    expect(crawl.peek()) == root.kind
+                }
+
+                it("doesn't move from the root node") {
+                    var crawl = Crawler(at: root.kind)
+                    crawl.move(.down)
+                    expect(crawl.peek()) == root.kind
                 }
             }
         }
