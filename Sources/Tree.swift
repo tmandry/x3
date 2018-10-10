@@ -119,15 +119,25 @@ extension NodeKind: Equatable {
 class ContainerNode: Node {
     let layout: Layout
     private(set) var children: [NodeKind]
+    fileprivate var selectionData: SelectionData
 
     enum InsertionPolicy {
         case end
     }
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
-        self.layout = type
-        self.children = []
+        layout = type
+        children = []
+        selectionData = initSelectionData()
         super.init(parent: parent)
+    }
+
+    /// Destroys this node and all of its children and removes them from the tree.
+    func destroyAll() {
+        guard let parent = parent else {
+            fatalError("cannot destroy root node")
+        }
+        let _ = parent.removeChild(self)
     }
 }
 
@@ -139,6 +149,7 @@ class WindowNode: Node {
         super.init(parent: parent)
     }
 
+    /// Destroys this node and removes it from the parent.
     func destroy() {
         let _ = self.parent!.removeChild(self)
     }
@@ -231,6 +242,7 @@ extension WindowNode {
 }
 
 // - MARK: Size
+
 extension ContainerNode {
     fileprivate func onNewNodeAdjustSize(index: Int) {
         let newSize: Float = 1.0 / Float(children.count)
@@ -302,6 +314,81 @@ private extension CGRect {
                       width: self.width.rounded(), height: self.height.rounded())
     }
 }
+
+// - MARK: Selection
+// Every non-empty container has a selected node. This node is used, for
+// example, in determining which child node to move to during a keyboard motion.
+//
+// All container nodes have a selected node, but may not themselves be selected.
+// In this case, we say the selected node is "locally selected". If the
+// selection path from the root of the tree includes a node, we say it is
+// "globally selected."
+//
+// If the selected node is removed, the node after it is selected. If there
+// is no node after the removed node, the node before it is selected.
+// This is easily accomplished with a simple integer index.
+
+fileprivate typealias SelectionData = Int
+
+fileprivate func initSelectionData() -> SelectionData { return 0 }
+
+extension ContainerNode {
+    /// Returns the selected node of this container.
+    ///
+    /// There is always a selected node, unless the container is empty.
+    var selection: NodeKind? {
+        get {
+            if children.isEmpty {
+                return nil
+            }
+            return children[min(selectionData, children.count - 1)]
+        }
+    }
+}
+
+extension Node {
+    /// Whether this node is the locally selected node of its parent.
+    ///
+    /// Note that this does *NOT* indicate whether the node is globally selected.
+    var isSelected: Bool {
+        guard let parent = parent else {
+            // By convention, the root node is never considered selected.
+            return false
+        }
+        // We know our parent has at least one child, so it must have a selection.
+        return parent.selection!.base == self
+    }
+
+    /// Selects this node locally (within its parent).
+    func selectLocally() {
+        guard let parent = parent else {
+            fatalError("cannot select root node")
+        }
+        parent.selectionData = parent.children.firstIndex(where: {$0.base == self})!
+    }
+
+    /// Selects this node globally (this node and all its ancestors are selected).
+    func selectGlobally() {
+        var node = self
+        while let parent = node.parent {
+            node.selectLocally()
+            node = parent
+        }
+    }
+}
+
+extension NodeKind {
+    var selection: NodeKind? {
+        switch self {
+        case .container(let c):
+            return c.selection
+        case .window:
+            return nil
+        }
+    }
+}
+
+// - MARK: Crawler
 
 enum Direction {
     case up

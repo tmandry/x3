@@ -83,6 +83,7 @@ class WindowManager {
         }
 
         // Update focus in response to focused window changing.
+        // TODO: Add FocusedWindowChangedEvent to Swindler
         state.on { (event: FrontmostApplicationChangedEvent) in
             self.updateFocus(window: event.newValue?.focusedWindow.value)
         }
@@ -110,6 +111,7 @@ class WindowManager {
     }
 
     func raise(_ window: Window) {
+        // TODO: Add this method to Swindler
         window.application.mainWindow.set(window).then { _ in
             return self.state.frontmostApplication.set(window.application)
         }.catch { err in

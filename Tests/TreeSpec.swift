@@ -203,15 +203,15 @@ class TreeSpec: QuickSpec {
                     ))
                 }
 
-                var child, grandchild: NodeKind!
+                var child, grandchild: ContainerNode!
                 beforeEach {
                     root.makeWindow(a.window, at: .end)
                         .makeContainer(layout: .vertical, at: .end) { n in
-                            child = n.kind
+                            child = n
                             n.makeWindow(b.window, at: .end)
                              .makeWindow(c.window, at: .end)
                              .makeContainer(layout: .horizontal, at: .end) { n in
-                                 grandchild = n.kind
+                                 grandchild = n
                                  n.makeWindow(d.window, at: .end)
                                   .makeWindow(e.window, at: .end)
                              }
@@ -227,9 +227,9 @@ class TreeSpec: QuickSpec {
                 it("ascends") {
                     var crawl = Crawler(at: root.find(window: d.window)!)
                     crawl = crawl.ascend()!
-                    expect(crawl.node) == grandchild
+                    expect(crawl.node) == grandchild.kind
                     crawl = crawl.ascend()!
-                    expect(crawl.node) == child
+                    expect(crawl.node) == child.kind
                     crawl = crawl.ascend()!
                     expect(crawl.node) == root.kind
                 }
@@ -237,6 +237,89 @@ class TreeSpec: QuickSpec {
                 it("doesn't move from the root node") {
                     let crawl = Crawler(at: root.kind)
                     expect(crawl.move(.down)?.node).to(beNil())
+                }
+            }
+
+            describe("Selection") {
+                var child, grandchild: ContainerNode!
+                var aNode, bNode, cNode, dNode, eNode: WindowNode!
+                beforeEach {
+                    root.makeWindow(a.window, at: .end)
+                        .makeContainer(layout: .vertical, at: .end) { n in
+                            child = n
+                            n.makeWindow(b.window, at: .end)
+                             .makeWindow(c.window, at: .end)
+                             .makeContainer(layout: .horizontal, at: .end) { n in
+                                 grandchild = n
+                                 n.makeWindow(d.window, at: .end)
+                                  .makeWindow(e.window, at: .end)
+                             }
+                        }
+                    aNode = tree.find(window: a.window)!
+                    bNode = tree.find(window: b.window)!
+                    cNode = tree.find(window: c.window)!
+                    dNode = tree.find(window: d.window)!
+                    eNode = tree.find(window: e.window)!
+                }
+
+                it("exists for every non-empty container node") {
+                    expect(root.selection).toNot(beNil())
+                    expect(child.selection).toNot(beNil())
+                    expect(grandchild.selection).toNot(beNil())
+
+                    let ggc = grandchild.createContainer(layout: .vertical, at: .end)
+                    expect(ggc.selection).to(beNil())
+                }
+
+                it("persists locally") {
+                    dNode.selectLocally()
+                    expect(dNode.isSelected) == true
+                    expect(eNode.isSelected) == false
+
+                    eNode.selectLocally()
+                    expect(dNode.isSelected) == false
+                    expect(eNode.isSelected) == true
+
+                    aNode.selectLocally()
+                    bNode.selectLocally()
+
+                    expect(child.isSelected) == false
+                    expect(grandchild.isSelected) == false
+                    expect(dNode.isSelected) == false
+                    expect(eNode.isSelected) == true
+                }
+
+                it("transfers to the next node upon deletion") {
+                    bNode.selectLocally()
+                    expect(child.selection) == bNode.kind
+
+                    bNode.destroy()
+                    expect(child.selection) == cNode.kind
+                }
+
+                it("transfers to the previous node when there is no next node") {
+                    grandchild.selectLocally()
+                    expect(child.selection) == grandchild.kind
+
+                    grandchild.destroyAll()
+                    expect(child.selection) == cNode.kind
+                }
+
+                describe("selectGlobally") {
+                    it("works") {
+                        bNode.selectGlobally()
+                        expect(aNode.base.isSelected) == false
+                        expect(child.base.isSelected) == true
+                        expect(bNode.base.isSelected) == true
+                        expect(grandchild.base.isSelected) == false
+
+                        eNode.selectGlobally()
+                        expect(aNode.base.isSelected) == false
+                        expect(child.base.isSelected) == true
+                        expect(bNode.base.isSelected) == false
+                        expect(grandchild.base.isSelected) == true
+                        expect(eNode.base.isSelected) == true
+                    }
                 }
             }
         }
