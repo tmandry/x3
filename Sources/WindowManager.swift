@@ -24,12 +24,16 @@ extension TreeWrapper {
 
 class WindowManager {
     var state: Swindler.State
-    var tree: TreeWrapper
+
     let hotKeys: HotKeyManager
+
+    var tree: TreeWrapper
+    var focus: Crawler?
 
     init(state: Swindler.State) {
         self.state = state
         self.tree = TreeWrapper(Tree(screen: state.screens.last!))
+        self.focus = nil
 
         //NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
         //    debugPrint("Got event: \(event)")
@@ -37,18 +41,26 @@ class WindowManager {
 
         hotKeys = HotKeyManager()
         hotKeys.register(keyCode: kVK_ANSI_L, modifierKeys: optionKey) {
-            debugPrint("woohoo!")
+            self.moveFocus(.right)
         }
         hotKeys.register(keyCode: kVK_ANSI_H, modifierKeys: optionKey) {
-            debugPrint("wahhah!")
+            self.moveFocus(.left)
         }
+        hotKeys.register(keyCode: kVK_ANSI_J, modifierKeys: optionKey) {
+            self.moveFocus(.down)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_K, modifierKeys: optionKey) {
+            self.moveFocus(.up)
+        }
+
         hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey) {
             debugPrint(String(describing:
                 self.state.frontmostApplication.value?.mainWindow.value?.title.value))
             if let window = self.state.frontmostApplication.value?.mainWindow.value {
                 self.tree.with { tree in
                     if !tree.root.contains(window: window) {
-                        tree.root.createWindow(window, at: .end)
+                        let node = tree.root.createWindow(window, at: .end)
+                        self.focus = Crawler(at: node)
                     }
                 }
                 debugPrint(String(describing: self.tree.peek()))
@@ -58,12 +70,50 @@ class WindowManager {
             self.tree.peek().refresh()
         }
 
+        // Update tree in response to window being destroyed.
         state.on { (event: WindowDestroyedEvent) in
             self.tree.with { tree in
                 if let node = tree.find(window: event.window) {
+                    if self.focus?.node.base == node {
+                        self.focus = nil
+                    }
                     node.destroy()
                 }
             }
+        }
+
+        // Update focus in response to focused window changing.
+        state.on { (event: FrontmostApplicationChangedEvent) in
+            self.updateFocus(window: event.newValue?.focusedWindow.value)
+        }
+        state.on { (event: ApplicationFocusedWindowChangedEvent) in
+            if event.application == self.state.frontmostApplication.value {
+                self.updateFocus(window: event.newValue)
+            }
+        }
+    }
+
+    func updateFocus(window: Window?) {
+        guard let window = window else { return }
+        guard let node = tree.peek().find(window: window) else { return }
+        focus = Crawler(at: node)
+    }
+
+    func moveFocus(_ direction: Direction) {
+        guard let next = focus?.move(direction) else {
+            return
+        }
+        focus = next
+        if case .window(let windowNode) = next.node {
+            raise(windowNode.window)
+        }
+    }
+
+    func raise(_ window: Window) {
+        window.application.mainWindow.set(window).then { _ in
+            return self.state.frontmostApplication.set(window.application)
+        }.catch { err in
+            print("Error raising window \(window): \(err)")
         }
     }
 }

@@ -112,7 +112,7 @@ enum NodeKind {
 
 extension NodeKind: Equatable {
     static func == (lhs: NodeKind, rhs: NodeKind) -> Bool {
-        return lhs.node.base == rhs.node.base
+        return lhs.base == rhs.base
     }
 }
 
