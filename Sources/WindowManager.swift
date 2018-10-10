@@ -48,7 +48,7 @@ class WindowManager {
             if let window = self.state.frontmostApplication.value?.mainWindow.value {
                 self.tree.with { tree in
                     if !tree.root.contains(window: window) {
-                        tree.root.createWindowChild(window, at: .end)
+                        tree.root.createWindow(window, at: .end)
                     }
                 }
                 debugPrint(String(describing: self.tree.peek()))

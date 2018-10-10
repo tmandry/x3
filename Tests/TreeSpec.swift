@@ -7,12 +7,49 @@ func r(x: Int, y: Int, w: Int, h: Int) -> CGRect {
     return CGRect(x: x, y: y, width: w, height: h)
 }
 
+/// "Builder" interface for ContainerNodes.
+///
+/// I only foresee this being useful in tests, but that may change.
+extension ContainerNode {
+    @discardableResult
+    func makeContainer(layout: Layout, at: InsertionPolicy) -> ContainerNode {
+        createContainer(layout: layout, at: at)
+        return self
+    }
+
+    @discardableResult
+    func makeContainer(layout: Layout, at: InsertionPolicy, _ f: (ContainerNode) -> ()) -> ContainerNode {
+        let child = createContainer(layout: layout, at: at)
+        f(child)
+        return self
+    }
+
+    @discardableResult
+    func makeWindow(_ window: Swindler.Window, at: InsertionPolicy) -> ContainerNode {
+        createWindow(window, at: at)
+        return self
+    }
+
+    @discardableResult
+    func makeWindow(_ window: Swindler.Window, at: InsertionPolicy, _ f: (WindowNode) -> ()) -> ContainerNode {
+        let child = createWindow(window, at: at)
+        f(child)
+        return self
+    }
+}
+
 class TreeSpec: QuickSpec {
     override func spec() {
         var fakeApp: FakeApplication!
+        var a, b, c, d, e: FakeWindow!
 
         beforeEach {
             fakeApp = FakeApplication(parent: FakeState())
+            a = newWindow("A")
+            b = newWindow("B")
+            c = newWindow("C")
+            d = newWindow("D")
+            e = newWindow("E")
         }
 
         func newWindow(_ title: String = "FakeWindow") -> FakeWindow {
@@ -29,7 +66,12 @@ class TreeSpec: QuickSpec {
         context("with a single screen") {
             var screen: Screen!
             var tree: Tree!
-            var a, b, c: FakeWindow!
+
+            var root: ContainerNode {
+                get {
+                    return tree.root
+                }
+            }
 
             beforeEach {
                 screen = FakeScreen(frame: CGRect(x: 0, y: 0, width: 2000, height: 1060),
@@ -37,20 +79,17 @@ class TreeSpec: QuickSpec {
                                     dockHeight: 50).screen
                 tree = Tree(screen: screen)
 
-                a = newWindow("A")
-                b = newWindow("B")
-                c = newWindow("C")
             }
 
             it("lays out windows horizontally by default") {
-                tree.root.createWindowChild(a.window, at: .end)
-                tree.root.createWindowChild(b.window, at: .end)
+                tree.root.createWindow(a.window, at: .end)
+                tree.root.createWindow(b.window, at: .end)
                 tree.refresh()
 
                 expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
                 expect(b.rect).toEventually(equal(r(x: 1000, y: 10, w: 1000, h: 1000)))
 
-                tree.root.createWindowChild(c.window, at: .end)
+                tree.root.createWindow(c.window, at: .end)
                 tree.refresh()
 
                 expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 667, h: 1000)))
@@ -59,9 +98,9 @@ class TreeSpec: QuickSpec {
             }
 
             it("removes windows when they are destroyed") {
-                let anode = tree.root.createWindowChild(a.window, at: .end)
-                let bnode = tree.root.createWindowChild(b.window, at: .end)
-                let cnode = tree.root.createWindowChild(c.window, at: .end)
+                let anode = tree.root.createWindow(a.window, at: .end)
+                let bnode = tree.root.createWindow(b.window, at: .end)
+                let cnode = tree.root.createWindow(c.window, at: .end)
                 tree.refresh()
 
                 bnode.destroy()
@@ -81,10 +120,10 @@ class TreeSpec: QuickSpec {
             }
 
             it("allows nesting a horizontal container inside horizontal") {
-                tree.root.createWindowChild(a.window, at: .end)
-                let child = tree.root.createContainerChild(layout: .horizontal, at: .end)
-                child.createWindowChild(b.window, at: .end)
-                child.createWindowChild(c.window, at: .end)
+                tree.root.createWindow(a.window, at: .end)
+                let child = tree.root.createContainer(layout: .horizontal, at: .end)
+                child.createWindow(b.window, at: .end)
+                child.createWindow(c.window, at: .end)
                 tree.refresh()
 
                 expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
@@ -94,16 +133,14 @@ class TreeSpec: QuickSpec {
 
             context("when a vertical container is nested inside a horizontal") {
                 var child: ContainerNode!
-                var d: FakeWindow!, dnode: WindowNode!
+                var dnode: WindowNode!
 
                 beforeEach {
-                    d = newWindow("D")
-
-                    tree.root.createWindowChild(a.window, at: .end)
-                    child = tree.root.createContainerChild(layout: .vertical, at: .end)
-                    child.createWindowChild(b.window, at: .end)
-                    child.createWindowChild(c.window, at: .end)
-                    dnode = child.createWindowChild(d.window, at: .end)
+                    tree.root.createWindow(a.window, at: .end)
+                    child = tree.root.createContainer(layout: .vertical, at: .end)
+                    child.createWindow(b.window, at: .end)
+                    child.createWindow(c.window, at: .end)
+                    dnode = child.createWindow(d.window, at: .end)
                     tree.refresh()
                 }
 
@@ -127,17 +164,14 @@ class TreeSpec: QuickSpec {
 
             context("when containers are nested 3 deep") {
                 var child, grandchild: ContainerNode!
-                var d: FakeWindow!
 
                 beforeEach {
-                    d = newWindow("D")
-
-                    tree.root.createWindowChild(a.window, at: .end)
-                    child = tree.root.createContainerChild(layout: .vertical, at: .end)
-                    child.createWindowChild(b.window, at: .end)
-                    grandchild = child.createContainerChild(layout: .horizontal, at: .end)
-                    grandchild.createWindowChild(c.window, at: .end)
-                    grandchild.createWindowChild(d.window, at: .end)
+                    tree.root.createWindow(a.window, at: .end)
+                    child = tree.root.createContainer(layout: .vertical, at: .end)
+                    child.createWindow(b.window, at: .end)
+                    grandchild = child.createContainer(layout: .horizontal, at: .end)
+                    grandchild.createWindow(c.window, at: .end)
+                    grandchild.createWindow(d.window, at: .end)
                     tree.refresh()
                 }
 
@@ -148,15 +182,44 @@ class TreeSpec: QuickSpec {
                     expect(d.rect).toEventually(equal(r(x: 1500, y: 510, w: 500,  h: 500)))
                 }
 
-                xit("correctly resizes when a container is moved") {
+                it("correctly resizes when a container is moved") {
                     // Note: in this case, `child` will end up having only one child window (b).
                     tree.root.addChild(child.removeChild(grandchild)!, at: .end)
                     tree.refresh()
 
                     expect(a.rect).toEventually(equal(r(x: 0,    y: 10,  w: 667, h: 1000)))
                     expect(b.rect).toEventually(equal(r(x: 667,  y: 10,  w: 667, h: 1000)))
-                    expect(c.rect).toEventually(equal(r(x: 1333, y: 10,  w: 333, h: 1000)))
-                    expect(d.rect).toEventually(equal(r(x: 1667, y: 10,  w: 333, h: 1000)))
+                    expect(c.rect).toEventually(equal(r(x: 1333, y: 10,  w: 334, h: 1000)))
+                    expect(d.rect).toEventually(equal(r(x: 1667, y: 10,  w: 334, h: 1000)))
+                }
+            }
+
+            describe("Crawler") {
+                func checkMove(_ direction: Direction, from: FakeWindow, to: FakeWindow,
+                               file: String = #file, line: UInt = #line) {
+                    var crawler = Crawler(at: root.find(window: from.window)!)
+                    crawler.move(direction)
+                    expect(crawler.peek(), file: file, line: line).to(equal(
+                        root.find(window: to.window)!.kind
+                    ))
+                }
+
+                beforeEach {
+                    root.makeWindow(a.window, at: .end)
+                        .makeContainer(layout: .vertical, at: .end) { n in
+                            n.makeWindow(b.window, at: .end)
+                             .makeWindow(c.window, at: .end)
+                             .makeContainer(layout: .horizontal, at: .end) { n in
+                                 n.makeWindow(d.window, at: .end)
+                                  .makeWindow(e.window, at: .end)
+                             }
+                        }
+                }
+
+                it("moves predictably") {
+                    checkMove(.right, from: d, to: e)
+                    checkMove(.up,    from: d, to: c)
+                    checkMove(.left,  from: d, to: a)
                 }
             }
         }

@@ -5,6 +5,17 @@ enum Layout {
     case vertical
     case stacked
 }
+extension Layout {
+    var orientation: Orientation {
+        get {
+            switch (self) {
+            case .horizontal: return .horizontal
+            case .vertical:   return .vertical
+            case .stacked:    return .vertical
+            }
+        }
+    }
+}
 
 struct Tree {
     let root: ContainerNode
@@ -42,6 +53,12 @@ class Node {
     var base: Node { return self }
 }
 
+extension Node: Equatable {
+    static func == (lhs: Node, rhs: Node) -> Bool {
+        return lhs === rhs
+    }
+}
+
 protocol NodeType: class {
     var parent: ContainerNode? { get }
 
@@ -51,12 +68,21 @@ protocol NodeType: class {
 
     // Primarily for internal use.
     var base: Node { get }
+
+    var kind: NodeKind { get }
 }
 
 extension NodeType {
     func contains(window: Swindler.Window) -> Bool {
         return self.find(window: window) != nil
     }
+}
+
+extension ContainerNode: NodeType {
+    var kind: NodeKind { get { return .container(self) } }
+}
+extension WindowNode: NodeType {
+    var kind: NodeKind { get { return .window(self) } }
 }
 
 struct MovingNode {
@@ -79,6 +105,12 @@ enum NodeKind {
         }
     }
     var base: Node { return node.base }
+}
+
+extension NodeKind: Equatable {
+    static func == (lhs: NodeKind, rhs: NodeKind) -> Bool {
+        return lhs.node.base == rhs.node.base
+    }
 }
 
 class ContainerNode: Node {
@@ -132,7 +164,7 @@ extension WindowNode: CustomDebugStringConvertible {
 // - MARK: Children
 extension ContainerNode {
     @discardableResult
-    func createContainerChild(layout: Layout, at: InsertionPolicy) -> ContainerNode {
+    func createContainer(layout: Layout, at: InsertionPolicy) -> ContainerNode {
         let node = ContainerNode(layout, parent: self)
         let index = indexForPolicy(at)
         children.insert(.container(node), at: index)
@@ -141,7 +173,14 @@ extension ContainerNode {
     }
 
     @discardableResult
-    func createWindowChild(_ window: Swindler.Window, at: InsertionPolicy) -> WindowNode {
+    func createContainer(layout: Layout, at: InsertionPolicy, _ f: (ContainerNode) -> ()) -> ContainerNode {
+        let child = createContainer(layout: layout, at: at)
+        f(child)
+        return child
+    }
+
+    @discardableResult
+    func createWindow(_ window: Swindler.Window, at: InsertionPolicy) -> WindowNode {
         let node = WindowNode(window, parent: self)
         let index = indexForPolicy(at)
         children.insert(.window(node), at: index)
@@ -261,5 +300,96 @@ private extension CGRect {
     }
 }
 
-extension ContainerNode: NodeType {}
-extension WindowNode: NodeType {}
+enum Direction {
+    case up
+    case down
+    case left
+    case right
+}
+extension Direction {
+    var orientation: Orientation {
+        get {
+            switch (self) {
+            case .up: return .vertical
+            case .down: return .vertical
+            case .left: return .horizontal
+            case .right: return .horizontal
+            }
+        }
+    }
+
+    var value: Int {
+        get {
+            switch (self) {
+            case .up:    return -1
+            case .down:  return +1
+            case .left:  return -1
+            case .right: return +1
+            }
+        }
+    }
+}
+
+enum Orientation {
+    case horizontal
+    case vertical
+}
+
+/// A sort of generalized iterator which crawls the tree in all directions.
+struct Crawler {
+    var container: ContainerNode?
+    var index: Int
+
+    init(at: NodeKind) {
+        container = at.base.parent
+        index     = container!.children.index(of: at)!
+    }
+
+    init(at: NodeType) {
+        self.init(at: at.kind)
+    }
+
+    /// Moves the crawler in the cardinal direction specified.
+    mutating func move(_ direction: Direction) {
+        precondition(container != nil)
+        precondition(index < container!.children.count)
+
+        // Walk up the tree until we're able to move in the right direction (or hit the end).
+        var child = container!.children[index]
+        while container != nil && !canMove(direction, from: child) {
+            child     = NodeKind.container(container!)
+            container = container!.parent
+        }
+
+        guard let container = container else {
+            // TODO return invalid
+            fatalError("unimplemented")
+        }
+
+        index = container.children.firstIndex(of: child)! + direction.value
+    }
+
+    /// Checks whether we can move within `self.container` along direction `d` from `child`.
+    private func canMove(_ d: Direction, from child: NodeKind) -> Bool {
+        guard let container = container else {
+            return false
+        }
+        if container.layout.orientation != d.orientation {
+            return false
+        }
+        let curIndex = container.children.firstIndex(of: child)!
+        let newIndex = curIndex + d.value
+        return newIndex >= 0 && newIndex < container.children.count
+    }
+
+    /// Peeks at the node pointed to by the Crawler.
+    func peek() -> NodeKind? {
+        guard let container = container else {
+            return nil
+        }
+        guard index < container.children.count else {
+            return nil
+        }
+        return container.children[index]
+    }
+}
