@@ -340,9 +340,9 @@ enum Orientation {
 
 /// A sort of generalized iterator which crawls the tree in all directions.
 struct Crawler {
-    var node: NodeKind?
+    var node: NodeKind
 
-    init(at: NodeKind?) {
+    init(at: NodeKind) {
         node = at
     }
 
@@ -351,22 +351,20 @@ struct Crawler {
     }
 
     /// Moves the crawler to the current node's parent.
-    func ascend() -> Crawler {
-        precondition(node != nil)
-        return Crawler(at: node!.base.parent?.kind)
+    func ascend() -> Crawler? {
+        guard let parent = node.base.parent else {
+            return nil
+        }
+        return Crawler(at: parent.kind)
     }
 
     /// Moves the crawler in the cardinal direction specified.
-    func move(_ direction: Direction) -> Crawler {
-        // TODO maybe use a weak var to check for deleted?
-        precondition(node != nil)
-
-        var child = node!
+    func move(_ direction: Direction) -> Crawler? {
+        var child = node
         var container = child.base.parent
         guard container != nil else {
             // Nowhere to go from root (or deleted) element.
-            // TODO should this return nil instead?
-            return self
+            return nil
         }
 
         // Walk up the tree until we're able to move in the right direction (or hit the end).
@@ -376,7 +374,7 @@ struct Crawler {
         }
 
         guard let newContainer = container else {
-            return Crawler(at: nil)
+            return nil
         }
 
         let index = newContainer.children.firstIndex(of: child)! + direction.value
