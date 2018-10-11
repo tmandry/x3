@@ -101,7 +101,7 @@ class WindowManager {
     }
 
     func moveFocus(_ direction: Direction) {
-        guard let next = focus?.move(direction) else {
+        guard let next = focus?.move(direction, leaf: .selected) else {
             return
         }
         focus = next

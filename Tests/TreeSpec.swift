@@ -195,10 +195,12 @@ class TreeSpec: QuickSpec {
             }
 
             describe("Crawler") {
-                func checkMove(_ direction: Direction, from: FakeWindow, to: FakeWindow,
+                func checkMove(_ direction: Direction, leaf: Crawler.DescentStrategy,
+                               from: FakeWindow, to: FakeWindow,
                                file: String = #file, line: UInt = #line) {
                     let crawler = Crawler(at: root.find(window: from.window)!)
-                    expect(crawler.move(direction)?.node, file: file, line: line).to(equal(
+                    let result = crawler.move(direction, leaf: leaf)?.node
+                    expect(result, file: file, line: line).to(equal(
                         root.find(window: to.window)!.kind
                     ))
                 }
@@ -219,9 +221,16 @@ class TreeSpec: QuickSpec {
                 }
 
                 it("moves predictably") {
-                    checkMove(.right, from: d, to: e)
-                    checkMove(.up,    from: d, to: c)
-                    checkMove(.left,  from: d, to: a)
+                    checkMove(.right, leaf: .selected, from: d, to: e)
+                    checkMove(.up,    leaf: .selected, from: d, to: c)
+                    checkMove(.left,  leaf: .selected, from: d, to: a)
+                }
+
+                it("follows selection path when DescentStrategy.selected is used") {
+                    root.find(window: e.window)!.selectGlobally()
+                    checkMove(.right, leaf: .selected, from: a, to: e)
+                    root.find(window: c.window)!.selectGlobally()
+                    checkMove(.right, leaf: .selected, from: a, to: c)
                 }
 
                 it("ascends") {
@@ -236,7 +245,7 @@ class TreeSpec: QuickSpec {
 
                 it("doesn't move from the root node") {
                     let crawl = Crawler(at: root.kind)
-                    expect(crawl.move(.down)?.node).to(beNil())
+                    expect(crawl.move(.down, leaf: .selected)?.node).to(beNil())
                 }
             }
 

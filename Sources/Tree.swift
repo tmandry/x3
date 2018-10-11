@@ -445,8 +445,21 @@ struct Crawler {
         return Crawler(at: parent.kind)
     }
 
+    /// Describes how to select a leaf node in the tree after moving.
+    enum DescentStrategy {
+        /// Follow the selection path.
+        ///
+        /// For example, `move(.right, leaf: .selected)` will find the subtree
+        /// directly to the right of the current node, and pick its selected
+        /// leaf node.
+        case selected
+        // TODO: nearest
+    }
+
     /// Moves the crawler in the cardinal direction specified.
-    func move(_ direction: Direction) -> Crawler? {
+    ///
+    /// Selects a leaf node according to the requested `DescentStrategy`.
+    func move(_ direction: Direction, leaf: DescentStrategy) -> Crawler? {
         var child = node
         var container = child.base.parent
         guard container != nil else {
@@ -464,8 +477,18 @@ struct Crawler {
             return nil
         }
 
+        // Move over one in the requested direction.
         let index = newContainer.children.firstIndex(of: child)! + direction.value
-        return Crawler(at: newContainer.children[index])
+
+        // Now descend the tree.
+        child = newContainer.children[index]
+        switch leaf {
+        case .selected:
+            while let selection = child.selection {
+                child = selection
+            }
+        }
+        return Crawler(at: child)
     }
 
     /// Checks whether we can move within `container` along direction `d` from `child`.
