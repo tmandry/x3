@@ -253,22 +253,17 @@ class TreeSpec: QuickSpec {
                 var child, grandchild: ContainerNode!
                 var aNode, bNode, cNode, dNode, eNode: WindowNode!
                 beforeEach {
-                    root.makeWindow(a.window, at: .end)
+                    root.makeWindow(a.window, at: .end) { aNode = $0 }
                         .makeContainer(layout: .vertical, at: .end) { n in
                             child = n
-                            n.makeWindow(b.window, at: .end)
-                             .makeWindow(c.window, at: .end)
+                            n.makeWindow(b.window, at: .end) { bNode = $0 }
+                             .makeWindow(c.window, at: .end) { cNode = $0 }
                              .makeContainer(layout: .horizontal, at: .end) { n in
                                  grandchild = n
-                                 n.makeWindow(d.window, at: .end)
-                                  .makeWindow(e.window, at: .end)
+                                 n.makeWindow(d.window, at: .end) { dNode = $0 }
+                                  .makeWindow(e.window, at: .end) { eNode = $0 }
                              }
                         }
-                    aNode = tree.find(window: a.window)!
-                    bNode = tree.find(window: b.window)!
-                    cNode = tree.find(window: c.window)!
-                    dNode = tree.find(window: d.window)!
-                    eNode = tree.find(window: e.window)!
                 }
 
                 it("exists for every non-empty container node") {

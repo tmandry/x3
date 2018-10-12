@@ -123,6 +123,7 @@ class ContainerNode: Node {
 
     enum InsertionPolicy {
         case end
+        case after(NodeKind)
     }
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
@@ -214,9 +215,15 @@ extension ContainerNode {
         switch policy {
         case .end:
             return children.endIndex
+        case .after(let node):
+            guard let index = children.index(of: node) else {
+                fatalError("requested to insert node after a non-existent child")
+            }
+            return index + 1
         }
     }
 
+    // TODO: Make it an error to call with a node who isn't our child
     func removeChild(_ node: Node) -> MovingNode? {
         guard let index = children.index(where: {$0.node === node}) else {
             return nil
@@ -225,6 +232,10 @@ extension ContainerNode {
         node.base.removeFromParent()
         onRemoveNodeAdjustSize()
         return MovingNode(node)
+    }
+
+    func removeChild(_ node: NodeKind) -> MovingNode? {
+        return removeChild(node.base)
     }
 }
 extension ContainerNode {
@@ -344,6 +355,9 @@ extension ContainerNode {
             return children[min(selectionData, children.count - 1)]
         }
     }
+
+    // FIXME: We need to update the index anytime a child node is added or
+    // removed before the selected node.
 }
 
 extension Node {

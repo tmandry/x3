@@ -22,6 +22,14 @@ extension TreeWrapper {
     }
 }
 
+extension Swindler.State {
+    var focusedWindow: Window? {
+        get {
+            return self.frontmostApplication.value?.mainWindow.value
+        }
+    }
+}
+
 class WindowManager {
     var state: Swindler.State
 
@@ -54,20 +62,23 @@ class WindowManager {
         }
 
         hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey) {
-            debugPrint(String(describing:
-                self.state.frontmostApplication.value?.mainWindow.value?.title.value))
-            if let window = self.state.frontmostApplication.value?.mainWindow.value {
-                self.tree.with { tree in
-                    if !tree.root.contains(window: window) {
-                        let node = tree.root.createWindow(window, at: .end)
-                        self.focus = Crawler(at: node)
-                    }
-                }
-                debugPrint(String(describing: self.tree.peek()))
+            if let window = self.state.focusedWindow {
+                self.addWindow(window)
             }
         }
         hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey) {
             self.tree.peek().refresh()
+        }
+
+        hotKeys.register(keyCode: kVK_ANSI_Minus, modifierKeys: optionKey) {
+            if let node = self.focus?.node {
+                self.insertContainerAbove(node, layout: .vertical)
+            }
+        }
+        hotKeys.register(keyCode: kVK_ANSI_Backslash, modifierKeys: optionKey) {
+            if let node = self.focus?.node {
+                self.insertContainerAbove(node, layout: .horizontal)
+            }
         }
 
         // Update tree in response to window being destroyed.
@@ -94,10 +105,28 @@ class WindowManager {
         }
     }
 
+    func addWindow(_ window: Window) {
+        if tree.peek().root.contains(window: window) {
+            return
+        }
+        tree.with { tree in
+            var node: WindowNode!
+            if let focusNode = focus?.node,
+               let parent = focusNode.base.parent {
+                node = parent.createWindow(window, at: .after(focusNode))
+            } else {
+                node = tree.root.createWindow(window, at: .end)
+            }
+            focus = Crawler(at: node.kind)
+            node.selectGlobally()
+        }
+    }
+
     func updateFocus(window: Window?) {
         guard let window = window else { return }
         guard let node = tree.peek().find(window: window) else { return }
         focus = Crawler(at: node)
+        node.selectGlobally()
     }
 
     func moveFocus(_ direction: Direction) {
@@ -105,6 +134,7 @@ class WindowManager {
             return
         }
         focus = next
+        focus?.node.base.selectGlobally()
         if case .window(let windowNode) = next.node {
             raise(windowNode.window)
         }
@@ -117,5 +147,16 @@ class WindowManager {
         }.catch { err in
             print("Error raising window \(window): \(err)")
         }
+    }
+
+    func insertContainerAbove(_ node: NodeKind, layout: Layout) {
+        // FIXME: This modifies the tree without calling tree.with!
+        // In this case, it does not affect sizing, but we need a more principled
+        // approach here.
+        guard let parent = node.base.parent else {
+            fatalError("can't reparent the root node")
+        }
+        let container = parent.createContainer(layout: layout, at: .after(node))
+        container.addChild(parent.removeChild(node.base)!, at: .end)
     }
 }
