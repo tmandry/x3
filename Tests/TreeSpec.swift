@@ -7,37 +7,6 @@ func r(x: Int, y: Int, w: Int, h: Int) -> CGRect {
     return CGRect(x: x, y: y, width: w, height: h)
 }
 
-/// "Builder" interface for ContainerNodes.
-///
-/// I only foresee this being useful in tests, but that may change.
-extension ContainerNode {
-    @discardableResult
-    func makeContainer(layout: Layout, at: InsertionPolicy) -> ContainerNode {
-        createContainer(layout: layout, at: at)
-        return self
-    }
-
-    @discardableResult
-    func makeContainer(layout: Layout, at: InsertionPolicy, _ f: (ContainerNode) -> ()) -> ContainerNode {
-        let child = createContainer(layout: layout, at: at)
-        f(child)
-        return self
-    }
-
-    @discardableResult
-    func makeWindow(_ window: Swindler.Window, at: InsertionPolicy) -> ContainerNode {
-        createWindow(window, at: at)
-        return self
-    }
-
-    @discardableResult
-    func makeWindow(_ window: Swindler.Window, at: InsertionPolicy, _ f: (WindowNode) -> ()) -> ContainerNode {
-        let child = createWindow(window, at: at)
-        f(child)
-        return self
-    }
-}
-
 class TreeSpec: QuickSpec {
     override func spec() {
         var fakeApp: FakeApplication!
@@ -45,33 +14,18 @@ class TreeSpec: QuickSpec {
 
         beforeEach {
             fakeApp = FakeApplication(parent: FakeState())
-            a = newWindow("A")
-            b = newWindow("B")
-            c = newWindow("C")
-            d = newWindow("D")
-            e = newWindow("E")
-        }
-
-        func newWindow(_ title: String = "FakeWindow") -> FakeWindow {
-            var window: FakeWindow!
-            waitUntil { done in
-                fakeApp.createWindow().setTitle(title).build().then { w -> () in
-                    window = w
-                    done()
-                }.always {}
-            }
-            return window
+            a = createWindowForApp(fakeApp, "A")
+            b = createWindowForApp(fakeApp, "B")
+            c = createWindowForApp(fakeApp, "C")
+            d = createWindowForApp(fakeApp, "D")
+            e = createWindowForApp(fakeApp, "E")
         }
 
         context("with a single screen") {
             var screen: Screen!
             var tree: Tree!
 
-            var root: ContainerNode {
-                get {
-                    return tree.root
-                }
-            }
+            var root: ContainerNode { get { return tree.root } }
 
             beforeEach {
                 screen = FakeScreen(frame: CGRect(x: 0, y: 0, width: 2000, height: 1060),
@@ -194,60 +148,6 @@ class TreeSpec: QuickSpec {
                 }
             }
 
-            describe("Crawler") {
-                func checkMove(_ direction: Direction, leaf: Crawler.DescentStrategy,
-                               from: FakeWindow, to: FakeWindow,
-                               file: String = #file, line: UInt = #line) {
-                    let crawler = Crawler(at: root.find(window: from.window)!)
-                    let result = crawler.move(direction, leaf: leaf)?.node
-                    expect(result, file: file, line: line).to(equal(
-                        root.find(window: to.window)!.kind
-                    ))
-                }
-
-                var child, grandchild: ContainerNode!
-                beforeEach {
-                    root.makeWindow(a.window, at: .end)
-                        .makeContainer(layout: .vertical, at: .end) { n in
-                            child = n
-                            n.makeWindow(b.window, at: .end)
-                             .makeWindow(c.window, at: .end)
-                             .makeContainer(layout: .horizontal, at: .end) { n in
-                                 grandchild = n
-                                 n.makeWindow(d.window, at: .end)
-                                  .makeWindow(e.window, at: .end)
-                             }
-                        }
-                }
-
-                it("moves predictably") {
-                    checkMove(.right, leaf: .selected, from: d, to: e)
-                    checkMove(.up,    leaf: .selected, from: d, to: c)
-                    checkMove(.left,  leaf: .selected, from: d, to: a)
-                }
-
-                it("follows selection path when DescentStrategy.selected is used") {
-                    root.find(window: e.window)!.selectGlobally()
-                    checkMove(.right, leaf: .selected, from: a, to: e)
-                    root.find(window: c.window)!.selectGlobally()
-                    checkMove(.right, leaf: .selected, from: a, to: c)
-                }
-
-                it("ascends") {
-                    var crawl = Crawler(at: root.find(window: d.window)!)
-                    crawl = crawl.ascend()!
-                    expect(crawl.node) == grandchild.kind
-                    crawl = crawl.ascend()!
-                    expect(crawl.node) == child.kind
-                    crawl = crawl.ascend()!
-                    expect(crawl.node) == root.kind
-                }
-
-                it("doesn't move from the root node") {
-                    let crawl = Crawler(at: root.kind)
-                    expect(crawl.move(.down, leaf: .selected)?.node).to(beNil())
-                }
-            }
 
             describe("Selection") {
                 var child, grandchild: ContainerNode!
