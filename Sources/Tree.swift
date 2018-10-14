@@ -172,12 +172,15 @@ extension ContainerNode {
         let node = ContainerNode(layout, parent: self)
         let index = indexForPolicy(at)
         children.insert(.container(node), at: index)
-        onNewNodeAdjustSize(index: index)
+        onNewNode(index: index)
         return node
     }
 
     @discardableResult
-    func createContainer(layout: Layout, at: InsertionPolicy, _ f: (ContainerNode) -> ()) -> ContainerNode {
+    func createContainer(layout: Layout,
+                         at: InsertionPolicy,
+                         _ f: (ContainerNode) -> ())
+    -> ContainerNode {
         let child = createContainer(layout: layout, at: at)
         f(child)
         return child
@@ -188,7 +191,7 @@ extension ContainerNode {
         let node = WindowNode(window, parent: self)
         let index = indexForPolicy(at)
         children.insert(.window(node), at: index)
-        onNewNodeAdjustSize(index: index)
+        onNewNode(index: index)
         return node
     }
 
@@ -197,7 +200,7 @@ extension ContainerNode {
         child.kind.node.base.reparent(newParent: self)
         let index = indexForPolicy(at)
         children.insert(child.kind, at: index)
-        onNewNodeAdjustSize(index: index)
+        onNewNode(index: index)
     }
 
     private func indexForPolicy(_ policy: InsertionPolicy) -> Int {
@@ -219,12 +222,21 @@ extension ContainerNode {
         }
         let node = children.remove(at: index)
         node.base.removeFromParent()
-        onRemoveNodeAdjustSize()
+        onRemoveNode()
         return MovingNode(node)
     }
 
     func removeChild(_ node: NodeKind) -> MovingNode? {
         return removeChild(node.base)
+    }
+
+    private func onNewNode(index: Int) {
+        onNewNodeAdjustSize(index: index)
+        onNewNodeUpdateSelection(index: index)
+    }
+
+    private func onRemoveNode() {
+        onRemoveNodeAdjustSize()
     }
 }
 extension ContainerNode {
@@ -342,6 +354,12 @@ extension ContainerNode {
                 return nil
             }
             return children[min(selectionData, children.count - 1)]
+        }
+    }
+
+    func onNewNodeUpdateSelection(index: Int) {
+        if index <= selectionData {
+            selectionData += 1
         }
     }
 

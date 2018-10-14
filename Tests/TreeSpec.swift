@@ -209,6 +209,21 @@ class TreeSpec: QuickSpec {
                     expect(child.selection) == cNode.kind
                 }
 
+                it("stays with the current node when a new node is added") {
+                    eNode.selectLocally()
+                    expect(eNode.isSelected) == true
+
+                    // Before E
+                    let f = createWindowForApp(fakeApp, "F")
+                    grandchild.createWindow(f.window, at: .after(dNode.kind))
+                    expect(eNode.isSelected) == true
+
+                    // After E
+                    let g = createWindowForApp(fakeApp, "G")
+                    grandchild.createWindow(g.window, at: .after(eNode.kind))
+                    expect(eNode.isSelected) == true
+                }
+
                 describe("selectGlobally") {
                     it("works") {
                         bNode.selectGlobally()
