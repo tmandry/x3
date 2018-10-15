@@ -30,24 +30,34 @@ extension Swindler.State {
     }
 }
 
+/// Defines the basic window management operations and their behavior.
 class WindowManager {
     var state: Swindler.State
-
-    let hotKeys: HotKeyManager
 
     var tree: TreeWrapper
     var focus: Crawler?
 
-    init(state: Swindler.State) {
+    public init(state: Swindler.State) {
         self.state = state
         self.tree = TreeWrapper(Tree(screen: state.screens.last!))
         self.focus = nil
 
-        //NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
-        //    debugPrint("Got event: \(event)")
-        //}
+        state.on { (event: WindowDestroyedEvent) in
+            self.onWindowDestroyed(event.window)
+        }
 
-        hotKeys = HotKeyManager()
+        // TODO: Add FocusedWindowChangedEvent to Swindler
+        state.on { (event: FrontmostApplicationChangedEvent) in
+            self.onFocusedWindowChanged(window: event.newValue?.focusedWindow.value)
+        }
+        state.on { (event: ApplicationFocusedWindowChangedEvent) in
+            if event.application == self.state.frontmostApplication.value {
+                self.onFocusedWindowChanged(window: event.newValue)
+            }
+        }
+    }
+
+    func registerHotKeys(_ hotKeys: HotKeyManager) {
         hotKeys.register(keyCode: kVK_ANSI_L, modifierKeys: optionKey) {
             self.moveFocus(.right)
         }
@@ -80,29 +90,6 @@ class WindowManager {
                 self.insertContainerAbove(node, layout: .horizontal)
             }
         }
-
-        // Update tree in response to window being destroyed.
-        state.on { (event: WindowDestroyedEvent) in
-            self.tree.with { tree in
-                if let node = tree.find(window: event.window) {
-                    if self.focus?.node.base == node {
-                        self.focus = nil
-                    }
-                    node.destroy()
-                }
-            }
-        }
-
-        // Update focus in response to focused window changing.
-        // TODO: Add FocusedWindowChangedEvent to Swindler
-        state.on { (event: FrontmostApplicationChangedEvent) in
-            self.updateFocus(window: event.newValue?.focusedWindow.value)
-        }
-        state.on { (event: ApplicationFocusedWindowChangedEvent) in
-            if event.application == self.state.frontmostApplication.value {
-                self.updateFocus(window: event.newValue)
-            }
-        }
     }
 
     func addWindow(_ window: Window) {
@@ -122,11 +109,15 @@ class WindowManager {
         }
     }
 
-    func updateFocus(window: Window?) {
-        guard let window = window else { return }
-        guard let node = tree.peek().find(window: window) else { return }
-        focus = Crawler(at: node)
-        node.selectGlobally()
+    func onWindowDestroyed(_ window: Window) {
+        tree.with { tree in
+            if let node = tree.find(window: window) {
+                if self.focus?.node.base == node {
+                    self.focus = nil
+                }
+                node.destroy()
+            }
+        }
     }
 
     func moveFocus(_ direction: Direction) {
@@ -134,10 +125,21 @@ class WindowManager {
             return
         }
         focus = next
-        focus?.node.base.selectGlobally()
+
+        next.node.base.selectGlobally()
         if case .window(let windowNode) = next.node {
             raise(windowNode.window)
         }
+    }
+
+    func moveFocusedWindow(_ direction: Direction) {
+    }
+
+    func onFocusedWindowChanged(window: Window?) {
+        guard let window = window else { return }
+        guard let node = tree.peek().find(window: window) else { return }
+        focus = Crawler(at: node)
+        node.selectGlobally()
     }
 
     func raise(_ window: Window) {

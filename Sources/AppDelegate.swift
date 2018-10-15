@@ -14,7 +14,8 @@ import Swindler
 class AppDelegate: NSObject, NSApplicationDelegate {
     @IBOutlet weak var window: NSWindow!
 
-    var manager: WindowManager?
+    var manager: WindowManager!
+    var hotkeys: HotKeyManager!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // TODO: re-enable prompt; disabled because it gets in the way during testing.
@@ -26,6 +27,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let state = Swindler.state
         manager = WindowManager(state: state)
+
+        hotkeys = HotKeyManager()
+        manager.registerHotKeys(hotkeys)
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
