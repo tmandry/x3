@@ -101,7 +101,7 @@ struct Crawler {
         }
 
         // Move over one in the requested direction.
-        let index = newContainer.children.firstIndex(of: child)! + direction.value
+        let index = newContainer.children.index(of: child)! + direction.value
 
         // Now descend the tree.
         child = newContainer.children[index]
@@ -119,7 +119,7 @@ struct Crawler {
         if container.layout.orientation != d.orientation {
             return false
         }
-        let curIndex = container.children.firstIndex(of: child)!
+        let curIndex = container.children.index(of: child)!
         let newIndex = curIndex + d.value
         return newIndex >= 0 && newIndex < container.children.count
     }

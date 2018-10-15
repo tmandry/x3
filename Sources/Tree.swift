@@ -385,7 +385,7 @@ extension Node {
         guard let parent = parent else {
             fatalError("cannot select root node")
         }
-        parent.selectionData = parent.children.firstIndex(where: {$0.base == self})!
+        parent.selectionData = parent.children.index(where: {$0.base == self})!
     }
 
     /// Selects this node globally (this node and all its ancestors are selected).
