@@ -30,6 +30,12 @@ extension Swindler.State {
     }
 }
 
+extension NodeKind {
+    func toCrawler() -> Crawler {
+        return Crawler(at: self)
+    }
+}
+
 /// Defines the basic window management operations and their behavior.
 class WindowManager {
     var state: Swindler.State
@@ -109,13 +115,17 @@ class WindowManager {
         }
     }
 
-    func onWindowDestroyed(_ window: Window) {
+    private func onWindowDestroyed(_ window: Window) {
         tree.with { tree in
             if let node = tree.find(window: window) {
-                if self.focus?.node.base == node {
-                    self.focus = nil
-                }
+                let parent = node.parent
                 node.destroy()
+                if node == focus?.node.base {
+                    // TODO: Is this always correct? What if parent has no other
+                    // children, or is culled?
+                    focus = parent?.selection?.toCrawler()
+                    raiseFocus()
+                }
             }
         }
     }
@@ -127,24 +137,43 @@ class WindowManager {
         focus = next
 
         next.node.base.selectGlobally()
-        if case .window(let windowNode) = next.node {
-            raise(windowNode.window)
-        }
+        raiseFocus()
     }
 
     func moveFocusedWindow(_ direction: Direction) {
     }
 
-    func onFocusedWindowChanged(window: Window?) {
+    private func onFocusedWindowChanged(window: Window?) {
+        // TODO: This can happen when a window is destroyed and the OS
+        // automatically focuses another window from the same application. We
+        // should ignore these events instead of letting them influence
+        // selection.
+        //
+        // One way to do this is to simply add a delay on external events, but
+        // this won't be as reliable. Another way is tracking our raise requests
+        // and "locking" selection until they complete. This requires careful
+        // error handling (what if the window we raise is destroyed first? what
+        // if the request times out?)
         guard let window = window else { return }
         guard let node = tree.peek().find(window: window) else { return }
         focus = Crawler(at: node)
         node.selectGlobally()
     }
 
-    func raise(_ window: Window) {
+    private func raiseFocus() {
+        guard let focus = focus,
+              case .window(let windowNode) = focus.node else {
+            return
+        }
+        raise(windowNode.window)
+    }
+
+    private func raise(_ window: Window) {
         // TODO: Add this method to Swindler
         window.application.mainWindow.set(window).then { _ in
+            // TODO: Possible race condition here. If a new window is raised
+            // before the app responds to our above request, we should cancel
+            // the following operation.
             return self.state.frontmostApplication.set(window.application)
         }.catch { err in
             print("Error raising window \(window): \(err)")
