@@ -43,6 +43,12 @@ class WindowManager {
     var tree: TreeWrapper
     var focus: Crawler?
 
+    public var focusedWindow: Window? {
+        guard let node = focus?.node else { return nil }
+        guard case .window(let windowNode) = node else { return nil }
+        return windowNode.window
+    }
+
     public init(state: Swindler.State) {
         self.state = state
         self.tree = TreeWrapper(Tree(screen: state.screens.last!))
@@ -102,6 +108,7 @@ class WindowManager {
         if tree.peek().root.contains(window: window) {
             return
         }
+
         tree.with { tree in
             var node: WindowNode!
             if let focusNode = focus?.node,
@@ -110,8 +117,11 @@ class WindowManager {
             } else {
                 node = tree.root.createWindow(window, at: .end)
             }
-            focus = Crawler(at: node.kind)
+
+            // Question: Do we always want to focus new windows?
             node.selectGlobally()
+            focus = Crawler(at: node.kind)
+            raiseFocus()
         }
     }
 

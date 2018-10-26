@@ -3,7 +3,7 @@ import Quick
 import Swindler
 @testable import x3
 
-func r(x: Int, y: Int, w: Int, h: Int) -> CGRect {
+private func r(x: Int, y: Int, w: Int, h: Int) -> CGRect {
     return CGRect(x: x, y: y, width: w, height: h)
 }
 

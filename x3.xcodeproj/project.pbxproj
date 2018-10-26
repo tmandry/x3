@@ -18,6 +18,7 @@
 		2F884886217031DE00969736 /* Crawler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F884885217031DE00969736 /* Crawler.swift */; };
 		2F88488C2170353800969736 /* CrawlerSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F8848872170345B00969736 /* CrawlerSpec.swift */; };
 		2F88488D2170353800969736 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F8848892170345C00969736 /* Helpers.swift */; };
+		2F88488F2175917800969736 /* WindowManagerSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F88488E2175917800969736 /* WindowManagerSpec.swift */; };
 		36FB014CD38C81D575FF748E /* Pods_x3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B846D65F4F31BC519DB1D21 /* Pods_x3.framework */; };
 		3E50497AB285E705B00CE411 /* Pods_x3Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F2B6057340B2689BE4E1A7E /* Pods_x3Tests.framework */; };
 /* End PBXBuildFile section */
@@ -49,6 +50,7 @@
 		2F884885217031DE00969736 /* Crawler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Crawler.swift; sourceTree = "<group>"; };
 		2F8848872170345B00969736 /* CrawlerSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrawlerSpec.swift; sourceTree = "<group>"; };
 		2F8848892170345C00969736 /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
+		2F88488E2175917800969736 /* WindowManagerSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WindowManagerSpec.swift; sourceTree = "<group>"; };
 		39CEDA40B8BCDD89ADB0152E /* Pods-x3Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-x3Tests.release.xcconfig"; path = "Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests.release.xcconfig"; sourceTree = "<group>"; };
 		6B846D65F4F31BC519DB1D21 /* Pods_x3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_x3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F2B6057340B2689BE4E1A7E /* Pods_x3Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_x3Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -119,6 +121,7 @@
 		2F7D36E21F9C0D120049504F /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				2F88488E2175917800969736 /* WindowManagerSpec.swift */,
 				2F8848872170345B00969736 /* CrawlerSpec.swift */,
 				2F8848882170345C00969736 /* support */,
 				2F7D36F81F9C0DBF0049504F /* Info.plist */,
@@ -357,6 +360,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F88488F2175917800969736 /* WindowManagerSpec.swift in Sources */,
 				2F88488C2170353800969736 /* CrawlerSpec.swift in Sources */,
 				2F88488D2170353800969736 /* Helpers.swift in Sources */,
 				2F00BBE0214F4AFF00457FB2 /* TreeSpec.swift in Sources */,
@@ -543,6 +547,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tylermandry.x3Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_VERSION = 4.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/x3.app/Contents/MacOS/x3";
 			};
