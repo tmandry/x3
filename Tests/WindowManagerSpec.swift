@@ -13,8 +13,8 @@ class WindowManagerSpec: QuickSpec {
         var fakeApp: FakeApplication!
         var a, b, c, d, e: FakeWindow!
 
-        beforeEach {
-            swindlerState = FakeState()
+        func setup(screens: [FakeScreen]) {
+            swindlerState = FakeState(screens: screens)
             fakeApp = FakeApplication(parent: swindlerState)
             swindlerState.frontmostApplication = fakeApp
             a = createWindowForApp(fakeApp, "A")
@@ -25,23 +25,23 @@ class WindowManagerSpec: QuickSpec {
         }
 
         context("with a single screen") {
-            var screen: Screen!
+            var screen: FakeScreen!
             var wm: WindowManager!
 
             beforeEach {
                 screen = FakeScreen(frame: CGRect(x: 0, y: 0, width: 2000, height: 1060),
                                     menuBarHeight: 10,
-                                    dockHeight: 50).screen
+                                    dockHeight: 50)
+                setup(screens: [screen])
                 wm = WindowManager(state: swindlerState.state)
             }
 
             describe("addWindow") {
-                // TODO fix FakeSwindler screens
-                xit("lays out windows horizontally by default") {
+                it("lays out windows horizontally by default") {
                     wm.addWindow(a.window)
                     wm.addWindow(b.window)
-                    expect(a.rect).toEventually(equal(r(x: 0,    y: 0, w: 1000, h: 1000)))
-                    expect(b.rect).toEventually(equal(r(x: 1000, y: 0, w: 1000, h: 1000)))
+                    expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
+                    expect(b.rect).toEventually(equal(r(x: 1000, y: 10, w: 1000, h: 1000)))
                 }
             }
 

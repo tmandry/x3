@@ -8,8 +8,8 @@ class CrawlerSpec: QuickSpec {
         var fakeApp: FakeApplication!
         var a, b, c, d, e: FakeWindow!
 
-        beforeEach {
-            fakeApp = FakeApplication(parent: FakeState())
+        func setup(screens: [FakeScreen]) {
+            fakeApp = FakeApplication(parent: FakeState(screens: screens))
             a = createWindowForApp(fakeApp, "A")
             b = createWindowForApp(fakeApp, "B")
             c = createWindowForApp(fakeApp, "C")
@@ -22,7 +22,9 @@ class CrawlerSpec: QuickSpec {
             var root: ContainerNode { get { return tree.root } }
 
             beforeEach {
-                tree = Tree(screen: FakeScreen().screen)
+                let screen = FakeScreen()
+                setup(screens: [screen])
+                tree = Tree(screen: screen.screen)
             }
 
             describe("Crawler") {

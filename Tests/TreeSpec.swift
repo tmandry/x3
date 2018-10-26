@@ -12,8 +12,8 @@ class TreeSpec: QuickSpec {
         var fakeApp: FakeApplication!
         var a, b, c, d, e: FakeWindow!
 
-        beforeEach {
-            fakeApp = FakeApplication(parent: FakeState())
+        func setup(screens: [FakeScreen]) {
+            fakeApp = FakeApplication(parent: FakeState(screens: screens))
             a = createWindowForApp(fakeApp, "A")
             b = createWindowForApp(fakeApp, "B")
             c = createWindowForApp(fakeApp, "C")
@@ -22,7 +22,7 @@ class TreeSpec: QuickSpec {
         }
 
         context("with a single screen") {
-            var screen: Screen!
+            var screen: FakeScreen!
             var tree: Tree!
 
             var root: ContainerNode { get { return tree.root } }
@@ -30,8 +30,9 @@ class TreeSpec: QuickSpec {
             beforeEach {
                 screen = FakeScreen(frame: CGRect(x: 0, y: 0, width: 2000, height: 1060),
                                     menuBarHeight: 10,
-                                    dockHeight: 50).screen
-                tree = Tree(screen: screen)
+                                    dockHeight: 50)
+                setup(screens: [screen])
+                tree = Tree(screen: screen.screen)
 
             }
 
