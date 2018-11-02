@@ -25,11 +25,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let state = Swindler.state
-        manager = WindowManager(state: state)
-
         hotkeys = HotKeyManager()
-        manager.registerHotKeys(hotkeys)
+
+        Swindler.initialize().then { state -> () in
+            self.manager = WindowManager(state: state)
+            self.manager.registerHotKeys(self.hotkeys)
+        }.catch { error in
+            fatalError("Swindler failed to initialize: \(error)")
+        }
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
