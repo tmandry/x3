@@ -7,14 +7,14 @@ import Nimble
 /// I only foresee this being useful in tests, but that may change.
 extension ContainerNode {
     @discardableResult
-    func makeContainer(layout: Layout, at: InsertionPolicy) -> ContainerNode {
+    func makeContainer(layout: Layout, at: InsertionPolicy = .end) -> ContainerNode {
         createContainer(layout: layout, at: at)
         return self
     }
 
     @discardableResult
     func makeContainer(layout: Layout,
-                       at: InsertionPolicy,
+                       at: InsertionPolicy = .end,
                        _ f: (ContainerNode) -> ())
     -> ContainerNode {
         let child = createContainer(layout: layout, at: at)
@@ -23,14 +23,14 @@ extension ContainerNode {
     }
 
     @discardableResult
-    func makeWindow(_ window: Swindler.Window, at: InsertionPolicy) -> ContainerNode {
+    func makeWindow(_ window: Swindler.Window, at: InsertionPolicy = .end) -> ContainerNode {
         createWindow(window, at: at)
         return self
     }
 
     @discardableResult
     func makeWindow(_ window: Swindler.Window,
-                    at: InsertionPolicy,
+                    at: InsertionPolicy = .end,
                     _ f: (WindowNode) -> ())
     -> ContainerNode {
         let child = createWindow(window, at: at)

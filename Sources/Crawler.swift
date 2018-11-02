@@ -7,12 +7,10 @@ enum Orientation {
 
 extension Layout {
     var orientation: Orientation {
-        get {
-            switch (self) {
-            case .horizontal: return .horizontal
-            case .vertical:   return .vertical
-            case .stacked:    return .vertical
-            }
+        switch (self) {
+        case .horizontal: return .horizontal
+        case .vertical:   return .vertical
+        case .stacked:    return .vertical
         }
     }
 }
@@ -26,24 +24,29 @@ enum Direction {
 
 extension Direction {
     var orientation: Orientation {
-        get {
-            switch (self) {
-            case .up: return .vertical
-            case .down: return .vertical
-            case .left: return .horizontal
-            case .right: return .horizontal
-            }
+        switch (self) {
+        case .up: return .vertical
+        case .down: return .vertical
+        case .left: return .horizontal
+        case .right: return .horizontal
         }
     }
 
     var value: Int {
-        get {
-            switch (self) {
-            case .up:    return -1
-            case .down:  return +1
-            case .left:  return -1
-            case .right: return +1
-            }
+        switch (self) {
+        case .up:    return -1
+        case .down:  return +1
+        case .left:  return -1
+        case .right: return +1
+        }
+    }
+
+    var opposite: Direction {
+        switch (self) {
+        case .up:    return .down
+        case .down:  return .up
+        case .left:  return .right
+        case .right: return .left
         }
     }
 }
@@ -83,28 +86,13 @@ struct Crawler {
     ///
     /// Selects a leaf node according to the requested `DescentStrategy`.
     func move(_ direction: Direction, leaf: DescentStrategy) -> Crawler? {
-        var child = node
-        var container = child.base.parent
-        guard container != nil else {
-            // Nowhere to go from root (or deleted) element.
+        // Move in the desired direction.
+        guard let (newContainer, index) = moveOne(node, direction) else {
             return nil
         }
-
-        // Walk up the tree until we're able to move in the right direction (or hit the end).
-        while container != nil && !canMove(direction, in: container!, from: child) {
-            child     = NodeKind.container(container!)
-            container = container!.parent
-        }
-
-        guard let newContainer = container else {
-            return nil
-        }
-
-        // Move over one in the requested direction.
-        let index = newContainer.children.index(of: child)! + direction.value
 
         // Now descend the tree.
-        child = newContainer.children[index]
+        var child = newContainer.children[index]
         switch leaf {
         case .selected:
             while let selection = child.selection {
@@ -113,14 +101,115 @@ struct Crawler {
         }
         return Crawler(at: child)
     }
+}
 
-    /// Checks whether we can move within `container` along direction `d` from `child`.
-    private func canMove(_ d: Direction, in container: ContainerNode, from child: NodeKind) -> Bool {
-        if container.layout.orientation != d.orientation {
-            return false
+fileprivate func moveOne(_ node: NodeKind, _ direction: Direction) -> (ContainerNode, Int)? {
+    var child = node
+    var container = child.base.parent
+    guard container != nil else {
+        // Nowhere to go from root (or deleted) element.
+        return nil
+    }
+
+    // Walk up the tree until we're able to move in the right direction (or hit the end).
+    while container != nil && !canMove(direction, in: container!, from: child) {
+        child     = NodeKind.container(container!)
+        container = container!.parent
+    }
+
+    guard let newContainer = container else {
+        return nil
+    }
+
+    // Move over one in the requested direction.
+    let index = newContainer.children.index(of: child)! + direction.value
+    return (newContainer, index)
+}
+
+/// Checks whether we can move within `container` along direction `d` from `child`.
+fileprivate func canMove(_ d: Direction, in container: ContainerNode, from child: NodeKind) -> Bool {
+    if container.layout.orientation != d.orientation {
+        return false
+    }
+    let curIndex = container.children.index(of: child)!
+    let newIndex = curIndex + d.value
+    return newIndex >= 0 && newIndex < container.children.count
+}
+
+extension NodeKind {
+    func move(inDirection direction: Direction) {
+        guard let (newContainer, point) = getMoveDestination(from: self, direction) else {
+            // We couldn't find a move in this direction.
+            return
         }
-        let curIndex = container.children.index(of: child)!
-        let newIndex = curIndex + d.value
-        return newIndex >= 0 && newIndex < container.children.count
+        if self.base.parent == nil {
+            fatalError("cannot move root node")
+        }
+        newContainer.addChild(self.base.removeFromParent()!, at: point)
+    }
+
+    typealias InsertionPolicy = ContainerNode.InsertionPolicy
+    private func getMoveDestination(from node: NodeKind,
+                                    _ direction: Direction) -> (ContainerNode, InsertionPolicy)? {
+        // Move in the desired direction.
+        guard let (container, index) = moveOne(node, direction) else {
+            return nil
+        }
+        let child = container.children[index]
+
+        // If we hit a leaf, we're done.
+        guard case .container(let childContainer) = child else {
+            // If we are moving node within the same container, then the point we want to insert
+            // at is at index.
+            if container == node.parent {
+                return (container, .at(index))
+            }
+            // Otherwise, we are moving up to an ancestor of `node`, and we want to insert it
+            // BETWEEN its current ancestor and the node pointed by `child`.
+            let point: InsertionPolicy = (direction.value < 0) ? .after(child) : .before(child)
+            return (container, point)
+        }
+
+        return descendToDestination(childContainer, inDirection: direction.opposite)
+    }
+
+    private func descendToDestination(_ container: ContainerNode,
+                                      inDirection direction: Direction)
+    -> (ContainerNode, InsertionPolicy) {
+        var node = container.kind
+        while case .container(let container) = node {
+            node = firstChildInDirection(direction, container)!
+        }
+
+        // newContainer must be a descendant of container, so it has a parent.
+        let newContainer = node.base.parent!
+
+        var point: InsertionPolicy!
+        if newContainer.layout.orientation == direction.orientation {
+            point = (direction.value < 0) ? .begin : .end
+        } else {
+            if let selection = newContainer.selection {
+                point = .after(selection)
+            } else {
+                // We only reach here if we encounter an empty container along the path.
+                // Empty containers are usually culled; this is a bug.
+                // TODO make a fatalError
+                print("found empty container during move! tree: " +
+                      String(describing: self.findRoot()))
+                point = .begin
+            }
+        }
+        return (newContainer, point)
+    }
+
+    // Returns the child to the farthest in direction `direction`. If this container
+    // has a different orientation than `direction`, returns the selected child.
+    private func firstChildInDirection(_ direction: Direction,
+                                       _ container: ContainerNode) -> NodeKind? {
+        if container.layout.orientation == direction.orientation {
+            return (direction.value < 0) ? container.children.first : container.children.last
+        } else {
+            return container.selection
+        }
     }
 }

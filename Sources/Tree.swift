@@ -32,7 +32,7 @@ class Node {
         self.size   = 0.0
     }
 
-    fileprivate func removeFromParent() {
+    fileprivate func orphan() {
         parent = nil
     }
     fileprivate func reparent(newParent: ContainerNode) {
@@ -42,6 +42,10 @@ class Node {
 
     // Primarily for internal use.
     var base: Node { return self }
+
+    func removeFromParent() -> MovingNode? {
+        return parent?.removeChild(self)
+    }
 }
 
 extension Node: Equatable {
@@ -105,14 +109,34 @@ extension NodeKind: Equatable {
     }
 }
 
+extension NodeKind {
+    var parent: ContainerNode? {
+        return base.parent
+    }
+
+    func findRoot() -> ContainerNode {
+        var node = self
+        while let ancestor = node.base.parent?.kind {
+            node = ancestor
+        }
+        guard case .container(let root) = node else {
+            fatalError("found non-container node with no parent")
+        }
+        return root
+    }
+}
+
 class ContainerNode: Node {
     let layout: Layout
     private(set) var children: [NodeKind]
     fileprivate var selectionData: SelectionData
 
     enum InsertionPolicy {
+        case begin
         case end
+        case before(NodeKind)
         case after(NodeKind)
+        case at(Int)
     }
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
@@ -205,13 +229,22 @@ extension ContainerNode {
 
     private func indexForPolicy(_ policy: InsertionPolicy) -> Int {
         switch policy {
+        case .begin:
+            return 0
         case .end:
             return children.endIndex
+        case .before(let node):
+            guard let index = children.index(of: node) else {
+                fatalError("requested to insert node before a non-existent child")
+            }
+            return index
         case .after(let node):
             guard let index = children.index(of: node) else {
                 fatalError("requested to insert node after a non-existent child")
             }
             return index + 1
+        case .at(let index):
+            return index
         }
     }
 
@@ -221,7 +254,7 @@ extension ContainerNode {
             return nil
         }
         let node = children.remove(at: index)
-        node.base.removeFromParent()
+        node.base.orphan()
         onRemoveNode()
         return MovingNode(node)
     }

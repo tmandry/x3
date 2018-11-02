@@ -83,6 +83,19 @@ class WindowManager {
             self.moveFocus(.up)
         }
 
+        hotKeys.register(keyCode: kVK_ANSI_L, modifierKeys: optionKey | shiftKey) {
+            self.moveFocusedNode(.right)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_H, modifierKeys: optionKey | shiftKey) {
+            self.moveFocusedNode(.left)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_J, modifierKeys: optionKey | shiftKey) {
+            self.moveFocusedNode(.down)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_K, modifierKeys: optionKey | shiftKey) {
+            self.moveFocusedNode(.up)
+        }
+
         hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey) {
             if let window = self.state.focusedWindow {
                 self.addWindow(window)
@@ -150,7 +163,13 @@ class WindowManager {
         raiseFocus()
     }
 
-    func moveFocusedWindow(_ direction: Direction) {
+    func moveFocusedNode(_ direction: Direction) {
+        guard let node = focus?.node else {
+            return
+        }
+        tree.with { tree in
+            node.move(inDirection: direction)
+        }
     }
 
     private func onFocusedWindowChanged(window: Window?) {
