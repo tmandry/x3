@@ -33,8 +33,7 @@ class TreeSpec: QuickSpec {
                                     menuBarHeight: 10,
                                     dockHeight: 50)
                 setup(screens: [screen])
-                tree = Tree(screen: screen.screen)
-
+                tree = Tree(screen: screen.screen, top: 0)
             }
 
             it("lays out windows horizontally by default") {

@@ -9,17 +9,27 @@ enum Layout {
 struct Tree {
     let root: ContainerNode
     let screen: Swindler.Screen
-    init(screen: Swindler.Screen) {
+    let top: CGFloat
+    init(screen: Swindler.Screen, top: CGFloat) {
         self.root = ContainerNode(.horizontal, parent: nil)
         self.screen = screen
+        self.top = top
     }
 
     func refresh() {
-        root.refresh(rect: screen.applicationFrame)
+        let frame = inverted(rect: screen.applicationFrame)
+        print("issuing refresh with frame \(frame)")
+        root.refresh(rect: frame)
     }
 
     func find(window: Swindler.Window) -> WindowNode? {
         return root.find(window: window)
+    }
+
+    // TODO: Fix Swindler so it uses the same coordinate system for everything
+    func inverted(rect: CGRect) -> CGRect {
+        return CGRect(x: rect.minX, y: top - (rect.minY + rect.height), width: rect.width, height:
+                      rect.height)
     }
 }
 
@@ -345,6 +355,7 @@ extension ContainerNode {
 extension WindowNode {
     func refresh(rect: CGRect) {
         let rect = rect.rounded()
+        print("assigning rect: \(rect) for window: \(window)")
         if window.position.value != rect.origin {
             window.position.value = rect.origin
         }

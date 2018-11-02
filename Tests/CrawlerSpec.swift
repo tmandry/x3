@@ -25,7 +25,7 @@ class CrawlerSpec: QuickSpec {
             beforeEach {
                 let screen = FakeScreen()
                 setup(screens: [screen])
-                tree = Tree(screen: screen.screen)
+                tree = Tree(screen: screen.screen, top: 0)
             }
 
             describe("Crawler") {

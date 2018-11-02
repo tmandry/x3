@@ -51,7 +51,8 @@ class WindowManager {
 
     public init(state: Swindler.State) {
         self.state = state
-        self.tree = TreeWrapper(Tree(screen: state.screens.last!))
+        let top = state.screens.map{$0.frame.maxY}.max()!
+        self.tree = TreeWrapper(Tree(screen: state.screens.last!, top: top))
         self.focus = nil
 
         state.on { (event: WindowDestroyedEvent) in
@@ -94,6 +95,10 @@ class WindowManager {
         }
         hotKeys.register(keyCode: kVK_ANSI_K, modifierKeys: optionKey | shiftKey) {
             self.moveFocusedNode(.up)
+        }
+
+        hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey | shiftKey) {
+            print(self.tree.peek().root)
         }
 
         hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey) {
