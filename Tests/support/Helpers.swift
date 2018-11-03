@@ -39,6 +39,17 @@ extension ContainerNode {
     }
 }
 
+func createState(screens: [FakeScreen] = [FakeScreen()]) -> FakeState {
+    var state: FakeState!
+    waitUntil { done in
+        FakeState.initialize(screens: screens).then { s -> () in
+            state = s
+            done()
+        }.always {}
+    }
+    return state
+}
+
 func createWindowForApp(_ app: FakeApplication, _ title: String = "FakeWindow") -> FakeWindow {
     var window: FakeWindow!
     waitUntil { done in

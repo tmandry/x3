@@ -14,7 +14,7 @@ class WindowManagerSpec: QuickSpec {
         var a, b, c, d, e: FakeWindow!
 
         func setup(screens: [FakeScreen]) {
-            swindlerState = FakeState(screens: screens)
+            swindlerState = createState(screens: screens)
             fakeApp = FakeApplication(parent: swindlerState)
             swindlerState.frontmostApplication = fakeApp
             a = createWindowForApp(fakeApp, "A")
