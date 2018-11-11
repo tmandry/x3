@@ -51,8 +51,7 @@ class WindowManager {
 
     public init(state: Swindler.State) {
         self.state = state
-        let top = state.screens.map{$0.frame.maxY}.max()!
-        self.tree = TreeWrapper(Tree(screen: state.screens.last!, top: top))
+        self.tree = TreeWrapper(Tree(screen: state.screens.last!))
         self.focus = nil
 
         state.on { (event: WindowDestroyedEvent) in

@@ -40,8 +40,8 @@ class WindowManagerSpec: QuickSpec {
                 it("lays out windows horizontally by default") {
                     wm.addWindow(a.window)
                     wm.addWindow(b.window)
-                    expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
-                    expect(b.rect).toEventually(equal(r(x: 1000, y: 10, w: 1000, h: 1000)))
+                    expect(a.rect).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(b.rect).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
                 }
             }
 

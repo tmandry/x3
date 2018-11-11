@@ -32,8 +32,10 @@ class TreeSpec: QuickSpec {
                 screen = FakeScreen(frame: CGRect(x: 0, y: 0, width: 2000, height: 1060),
                                     menuBarHeight: 10,
                                     dockHeight: 50)
+                expect(screen.screen.applicationFrame) == CGRect(x: 0, y: 50, width: 2000, height:
+                                                                 1000)
                 setup(screens: [screen])
-                tree = Tree(screen: screen.screen, top: 0)
+                tree = Tree(screen: screen.screen)
             }
 
             it("lays out windows horizontally by default") {
@@ -41,15 +43,15 @@ class TreeSpec: QuickSpec {
                 tree.root.createWindow(b.window, at: .end)
                 tree.refresh()
 
-                expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
-                expect(b.rect).toEventually(equal(r(x: 1000, y: 10, w: 1000, h: 1000)))
+                expect(a.rect).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                expect(b.rect).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
 
                 tree.root.createWindow(c.window, at: .end)
                 tree.refresh()
 
-                expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 667, h: 1000)))
-                expect(b.rect).toEventually(equal(r(x: 667,  y: 10, w: 667, h: 1000)))
-                expect(c.rect).toEventually(equal(r(x: 1333, y: 10, w: 667, h: 1000)))
+                expect(a.rect).toEventually(equal(r(x: 0,    y: 50, w: 667, h: 1000)))
+                expect(b.rect).toEventually(equal(r(x: 667,  y: 50, w: 667, h: 1000)))
+                expect(c.rect).toEventually(equal(r(x: 1333, y: 50, w: 667, h: 1000)))
             }
 
             it("removes windows when they are destroyed") {
@@ -61,13 +63,13 @@ class TreeSpec: QuickSpec {
                 bnode.destroy()
                 tree.refresh()
 
-                expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
-                expect(c.rect).toEventually(equal(r(x: 1000, y: 10, w: 1000, h: 1000)))
+                expect(a.rect).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                expect(c.rect).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
 
                 anode.destroy()
                 tree.refresh()
 
-                expect(c.rect).toEventually(equal(r(x: 0, y: 10, w: 2000, h: 1000)))
+                expect(c.rect).toEventually(equal(r(x: 0, y: 50, w: 2000, h: 1000)))
 
                 // Test that we don't crash upon destroying the last window.
                 cnode.destroy()
@@ -81,9 +83,9 @@ class TreeSpec: QuickSpec {
                 child.createWindow(c.window, at: .end)
                 tree.refresh()
 
-                expect(a.rect).toEventually(equal(r(x: 0,    y: 10, w: 1000, h: 1000)))
-                expect(b.rect).toEventually(equal(r(x: 1000, y: 10, w: 500,  h: 1000)))
-                expect(c.rect).toEventually(equal(r(x: 1500, y: 10, w: 500,  h: 1000)))
+                expect(a.rect).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                expect(b.rect).toEventually(equal(r(x: 1000, y: 50, w: 500,  h: 1000)))
+                expect(c.rect).toEventually(equal(r(x: 1500, y: 50, w: 500,  h: 1000)))
             }
 
             context("when a vertical container is nested inside a horizontal") {
@@ -100,20 +102,20 @@ class TreeSpec: QuickSpec {
                 }
 
                 it("sizes windows correctly") {
-                    expect(a.rect).toEventually(equal(r(x: 0,    y: 10,  w: 1000, h: 1000)))
-                    expect(b.rect).toEventually(equal(r(x: 1000, y: 10,  w: 1000, h: 333)))
-                    expect(c.rect).toEventually(equal(r(x: 1000, y: 343, w: 1000, h: 333)))
-                    expect(d.rect).toEventually(equal(r(x: 1000, y: 677, w: 1000, h: 333)))
+                    expect(a.rect).toEventually(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                    expect(b.rect).toEventually(equal(r(x: 1000, y: 717, w: 1000, h: 333)))
+                    expect(c.rect).toEventually(equal(r(x: 1000, y: 383, w: 1000, h: 333)))
+                    expect(d.rect).toEventually(equal(r(x: 1000, y: 50,  w: 1000, h: 333)))
                 }
 
                 it("correctly resizes when windows are moved") {
                     tree.root.addChild(child.removeChild(dnode)!, at: .end)
                     tree.refresh()
 
-                    expect(a.rect).toEventually(equal(r(x: 0,    y: 10,  w: 667, h: 1000)))
-                    expect(b.rect).toEventually(equal(r(x: 667,  y: 10,  w: 667, h: 500)))
-                    expect(c.rect).toEventually(equal(r(x: 667,  y: 510, w: 667, h: 500)))
-                    expect(d.rect).toEventually(equal(r(x: 1333, y: 10,  w: 667, h: 1000)))
+                    expect(a.rect).toEventually(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
+                    expect(b.rect).toEventually(equal(r(x: 667,  y: 550, w: 667, h: 500)))
+                    expect(c.rect).toEventually(equal(r(x: 667,  y: 50,  w: 667, h: 500)))
+                    expect(d.rect).toEventually(equal(r(x: 1333, y: 50,  w: 667, h: 1000)))
                 }
             }
 
@@ -131,10 +133,10 @@ class TreeSpec: QuickSpec {
                 }
 
                 it("sizes windows correctly") {
-                    expect(a.rect).toEventually(equal(r(x: 0,    y: 10,  w: 1000, h: 1000)))
-                    expect(b.rect).toEventually(equal(r(x: 1000, y: 10,  w: 1000, h: 500)))
-                    expect(c.rect).toEventually(equal(r(x: 1000, y: 510, w: 500,  h: 500)))
-                    expect(d.rect).toEventually(equal(r(x: 1500, y: 510, w: 500,  h: 500)))
+                    expect(a.rect).toEventually(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                    expect(b.rect).toEventually(equal(r(x: 1000, y: 550, w: 1000, h: 500)))
+                    expect(c.rect).toEventually(equal(r(x: 1000, y: 50,  w: 500,  h: 500)))
+                    expect(d.rect).toEventually(equal(r(x: 1500, y: 50,  w: 500,  h: 500)))
                 }
 
                 it("correctly resizes when a container is moved") {
@@ -142,10 +144,10 @@ class TreeSpec: QuickSpec {
                     tree.root.addChild(child.removeChild(grandchild)!, at: .end)
                     tree.refresh()
 
-                    expect(a.rect).toEventually(equal(r(x: 0,    y: 10,  w: 667, h: 1000)))
-                    expect(b.rect).toEventually(equal(r(x: 667,  y: 10,  w: 667, h: 1000)))
-                    expect(c.rect).toEventually(equal(r(x: 1333, y: 10,  w: 334, h: 1000)))
-                    expect(d.rect).toEventually(equal(r(x: 1667, y: 10,  w: 334, h: 1000)))
+                    expect(a.rect).toEventually(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
+                    expect(b.rect).toEventually(equal(r(x: 667,  y: 50,  w: 667, h: 1000)))
+                    expect(c.rect).toEventually(equal(r(x: 1333, y: 50,  w: 334, h: 1000)))
+                    expect(d.rect).toEventually(equal(r(x: 1667, y: 50,  w: 334, h: 1000)))
                 }
             }
 

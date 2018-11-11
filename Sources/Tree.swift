@@ -9,27 +9,17 @@ enum Layout {
 struct Tree {
     let root: ContainerNode
     let screen: Swindler.Screen
-    let top: CGFloat
-    init(screen: Swindler.Screen, top: CGFloat) {
+    init(screen: Swindler.Screen) {
         self.root = ContainerNode(.horizontal, parent: nil)
         self.screen = screen
-        self.top = top
     }
 
     func refresh() {
-        let frame = inverted(rect: screen.applicationFrame)
-        print("issuing refresh with frame \(frame)")
-        root.refresh(rect: frame)
+        root.refresh(rect: screen.applicationFrame)
     }
 
     func find(window: Swindler.Window) -> WindowNode? {
         return root.find(window: window)
-    }
-
-    // TODO: Fix Swindler so it uses the same coordinate system for everything
-    func inverted(rect: CGRect) -> CGRect {
-        return CGRect(x: rect.minX, y: top - (rect.minY + rect.height), width: rect.width, height:
-                      rect.height)
     }
 }
 
@@ -343,8 +333,10 @@ extension ContainerNode {
                           width: ((end - start) * whole.width).rounded(),
                           height: whole.height)
         case .vertical:
+            // Note that vertical containers go down, while macOS y coordinates go up, so we flip
+            // our slice here.
             return CGRect(x: whole.minX,
-                          y: (whole.minY + start * whole.height).rounded(),
+                          y: (whole.minY + (1.0 - end) * whole.height).rounded(),
                           width: whole.width,
                           height: ((end - start) * whole.height).rounded())
         case .stacked:
@@ -354,14 +346,9 @@ extension ContainerNode {
 }
 extension WindowNode {
     func refresh(rect: CGRect) {
+        print("RESIZING window to \(rect.rounded()) (\(rect)")
         let rect = rect.rounded()
-        print("assigning rect: \(rect) for window: \(window)")
-        if window.position.value != rect.origin {
-            window.position.value = rect.origin
-        }
-        if window.size.value != rect.size {
-            window.size.value = rect.size
-        }
+        window.frame.value = rect
     }
 }
 private extension CGRect {
