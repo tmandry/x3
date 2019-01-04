@@ -1,25 +1,15 @@
 PODS:
-  - AXSwift (0.2.2)
+  - AXSwift (0.2.3)
   - Nimble (7.3.0)
-  - PromiseKit (4.4.0):
-    - PromiseKit/Foundation (= 4.4.0)
-    - PromiseKit/QuartzCore (= 4.4.0)
-    - PromiseKit/UIKit (= 4.4.0)
-  - PromiseKit/CorePromise (4.4.0)
-  - PromiseKit/Foundation (4.4.0):
-    - PromiseKit/CorePromise
-  - PromiseKit/QuartzCore (4.4.0):
-    - PromiseKit/CorePromise
-  - PromiseKit/UIKit (4.4.0):
-    - PromiseKit/CorePromise
+  - PromiseKit/CorePromise (6.7.1)
   - Quick (1.3.1)
-  - Swindler (0.0.1):
-    - AXSwift (= 0.2.2)
-    - PromiseKit (= 4.4.0)
+  - Swindler (0.0.3):
+    - AXSwift (= 0.2.3)
+    - PromiseKit/CorePromise (~> 6.0)
 
 DEPENDENCIES:
   - Nimble (~> 7.3.0)
-  - PromiseKit
+  - PromiseKit/CorePromise (~> 6.0)
   - Quick (~> 1.3.0)
   - Swindler (from `./Swindler`)
 
@@ -35,12 +25,12 @@ EXTERNAL SOURCES:
     :path: "./Swindler"
 
 SPEC CHECKSUMS:
-  AXSwift: 495d2ae44b4351f98b94c63337d69989fa4a7978
+  AXSwift: d49fe05ca04f983196c5caedfc88f617922ae671
   Nimble: c8d6a1f463701921c46de965c673e13cafa09196
-  PromiseKit: ecf5fe92275d57ee77c9ede858af47a162e9b97e
+  PromiseKit: ef376fb8b4e92edfeb66bd403b983eaa07fbde0c
   Quick: d17304d58d0d169dd0bd1c6e5c28e3318de32a1a
-  Swindler: dbd4981b5febf70f9bb63cd24d1308c9fdd119f0
+  Swindler: fcb9b894764de0a6bc677bd8af397d362d0a37ea
 
-PODFILE CHECKSUM: fc9a05dbc47ee67160918bda6650d4dcb55fc68a
+PODFILE CHECKSUM: 6fab1a5bae5687100e4f9d3687e5acbef5c10af4
 
-COCOAPODS: 1.5.3
+COCOAPODS: 1.6.0.beta.2

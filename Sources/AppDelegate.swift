@@ -27,7 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         hotkeys = HotKeyManager()
 
-        Swindler.initialize().then { state -> () in
+        Swindler.initialize().done { state in
             self.manager = WindowManager(state: state)
             self.manager.registerHotKeys(self.hotkeys)
         }.catch { error in

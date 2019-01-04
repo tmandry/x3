@@ -267,7 +267,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-x3/Pods-x3-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-x3/Pods-x3-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/AXSwift/AXSwift.framework",
 				"${BUILT_PRODUCTS_DIR}/PromiseKit/PromiseKit.framework",
 				"${BUILT_PRODUCTS_DIR}/Swindler/Swindler.framework",
@@ -280,7 +280,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3/Pods-x3-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-x3/Pods-x3-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		936A5CA33F5897548E179DDC /* [CP] Embed Pods Frameworks */ = {
@@ -289,7 +289,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/PromiseKit/PromiseKit.framework",
 				"${BUILT_PRODUCTS_DIR}/Nimble/Nimble.framework",
 				"${BUILT_PRODUCTS_DIR}/Quick/Quick.framework",
@@ -302,7 +302,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-x3Tests/Pods-x3Tests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		B76F7FFC6CA505F2CAFEC395 /* [CP] Check Pods Manifest.lock */ = {

@@ -12,7 +12,7 @@ target 'x3' do
     inherit! :search_paths
     pod 'Nimble', '~> 7.3.0'
     pod 'Quick', '~> 1.3.0'
-    pod 'PromiseKit'
+    pod 'PromiseKit/CorePromise', '~> 6.0'
   end
 
 end
