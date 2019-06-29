@@ -42,10 +42,10 @@ extension ContainerNode {
 func createState(screens: [FakeScreen] = [FakeScreen()]) -> FakeState {
     var state: FakeState!
     waitUntil { done in
-        FakeState.initialize(screens: screens).then { s -> () in
+        FakeState.initialize(screens: screens).done { s in
             state = s
             done()
-        }.always {}
+        }.cauterize()
     }
     return state
 }
@@ -53,10 +53,10 @@ func createState(screens: [FakeScreen] = [FakeScreen()]) -> FakeState {
 func createWindowForApp(_ app: FakeApplication, _ title: String = "FakeWindow") -> FakeWindow {
     var window: FakeWindow!
     waitUntil { done in
-        app.createWindow().setTitle(title).build().then { w -> () in
+        app.createWindow().setTitle(title).build().done { w in
             window = w
             done()
-        }.always {}
+        }.cauterize()
     }
     return window
 }
