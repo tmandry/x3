@@ -122,7 +122,7 @@ fileprivate func moveOne(_ node: NodeKind, _ direction: Direction) -> (Container
     }
 
     // Move over one in the requested direction.
-    let index = newContainer.children.index(of: child)! + direction.value
+    let index = newContainer.children.firstIndex(of: child)! + direction.value
     return (newContainer, index)
 }
 
@@ -131,7 +131,7 @@ fileprivate func canMove(_ d: Direction, in container: ContainerNode, from child
     if container.layout.orientation != d.orientation {
         return false
     }
-    let curIndex = container.children.index(of: child)!
+    let curIndex = container.children.firstIndex(of: child)!
     let newIndex = curIndex + d.value
     return newIndex >= 0 && newIndex < container.children.count
 }

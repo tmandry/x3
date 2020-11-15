@@ -234,12 +234,12 @@ extension ContainerNode {
         case .end:
             return children.endIndex
         case .before(let node):
-            guard let index = children.index(of: node) else {
+            guard let index = children.firstIndex(of: node) else {
                 fatalError("requested to insert node before a non-existent child")
             }
             return index
         case .after(let node):
-            guard let index = children.index(of: node) else {
+            guard let index = children.firstIndex(of: node) else {
                 fatalError("requested to insert node after a non-existent child")
             }
             return index + 1
@@ -250,7 +250,7 @@ extension ContainerNode {
 
     // TODO: Make it an error to call with a node who isn't our child
     func removeChild(_ node: Node) -> MovingNode? {
-        guard let index = children.index(where: {$0.node === node}) else {
+        guard let index = children.firstIndex(where: {$0.node === node}) else {
             return nil
         }
         let node = children.remove(at: index)
@@ -416,7 +416,7 @@ extension Node {
         guard let parent = parent else {
             fatalError("cannot select root node")
         }
-        parent.selectionData = parent.children.index(where: {$0.base == self})!
+        parent.selectionData = parent.children.firstIndex(where: {$0.base == self})!
     }
 
     /// Selects this node globally (this node and all its ancestors are selected).
