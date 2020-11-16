@@ -10,7 +10,6 @@ import Cocoa
 import AXSwift
 import Swindler
 
-@NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
     @IBOutlet weak var window: NSWindow!
 
@@ -19,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // TODO: re-enable prompt; disabled because it gets in the way during testing.
-        guard AXSwift.checkIsProcessTrusted(prompt: false) else {
+        guard AXSwift.checkIsProcessTrusted(prompt: true) else {
             print("Not trusted as an AX process; please authorize and re-launch")
             NSApp.terminate(self)
             return

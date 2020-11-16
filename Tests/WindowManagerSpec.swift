@@ -1,3 +1,4 @@
+import Cocoa
 import Nimble
 import Quick
 import Swindler
