@@ -37,7 +37,7 @@ extension NodeKind {
 }
 
 /// Defines the basic window management operations and their behavior.
-class WindowManager {
+public class WindowManager {
     var state: Swindler.State
 
     var tree: TreeWrapper
@@ -69,7 +69,7 @@ class WindowManager {
         }
     }
 
-    func registerHotKeys(_ hotKeys: HotKeyManager) {
+    public func registerHotKeys(_ hotKeys: HotKeyManager) {
         hotKeys.register(keyCode: kVK_ANSI_L, modifierKeys: optionKey) {
             self.moveFocus(.right)
         }
@@ -207,6 +207,7 @@ class WindowManager {
             // TODO: Possible race condition here. If a new window is raised
             // before the app responds to our above request, we should cancel
             // the following operation.
+            // This has caused a test to fail before.
             return self.state.frontmostApplication.set(window.application)
         }.catch { err in
             print("Error raising window \(window): \(err)")

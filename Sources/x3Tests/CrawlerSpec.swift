@@ -1,3 +1,4 @@
+import Cocoa
 import Nimble
 import Quick
 import Swindler
@@ -31,7 +32,7 @@ class CrawlerSpec: QuickSpec {
             describe("Crawler") {
                 func checkMove(_ direction: Direction, leaf: Crawler.DescentStrategy,
                                from: FakeWindow, to: FakeWindow,
-                               file: String = #file, line: UInt = #line) {
+                               file: FileString = #file, line: UInt = #line) {
                     let crawler = Crawler(at: root.find(window: from.window)!)
                     let result = crawler.move(direction, leaf: leaf)?.node
                     expect(result, file: file, line: line).to(equal(

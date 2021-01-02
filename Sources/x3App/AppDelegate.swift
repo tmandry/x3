@@ -9,17 +9,17 @@
 import Cocoa
 import AXSwift
 import Swindler
+import x3
 
-@NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate {
+public class AppDelegate: NSObject, NSApplicationDelegate {
     @IBOutlet weak var window: NSWindow!
 
     var manager: WindowManager!
     var hotkeys: HotKeyManager!
 
-    func applicationDidFinishLaunching(_ aNotification: Notification) {
+    public func applicationDidFinishLaunching(_ aNotification: Notification) {
         // TODO: re-enable prompt; disabled because it gets in the way during testing.
-        guard AXSwift.checkIsProcessTrusted(prompt: false) else {
+        guard AXSwift.checkIsProcessTrusted(prompt: true) else {
             print("Not trusted as an AX process; please authorize and re-launch")
             NSApp.terminate(self)
             return
@@ -35,7 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationWillTerminate(_ aNotification: Notification) {
+    public func applicationWillTerminate(_ aNotification: Notification) {
         // Insert code here to tear down your application
     }
 }
