@@ -3,8 +3,10 @@ import Carbon
 
 private let hotKeySignature = fourCharCodeFrom("X3WM")
 
-class HotKeyManager {
+public class HotKeyManager {
     private var handlers: [() -> ()] = []
+
+    public init() {}
 
     func register(keyCode: Int, modifierKeys: Int, handler: @escaping () -> ()) {
         handlers.append(handler)
