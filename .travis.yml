@@ -1,8 +1,8 @@
-language: objective-c
-cache: cocoapods
-install: pod install || pod install --repo-update
+language: swift
+osx_image: xcode12.2
 
-xcode_workspace: x3.xcworkspace
-xcode_scheme: x3
-
-script: xcodebuild -workspace x3.xcworkspace -scheme x3 build test
+script:
+  - swift test
+  - swift build
+env:
+  - SWIFT_VERSION=5.1
