@@ -201,14 +201,30 @@ public class WindowManager {
         raise(windowNode.window)
     }
 
+    var pendingFrontmostApplication: Swindler.Application?
+
     private func raise(_ window: Window) {
-        // TODO: Add this method to Swindler
+        // TODO: Add this method to Swindler and test it.
+        //
+        // We raise the window within the application, then the application
+        // itself, to avoid a race where the application is made frontmost but
+        // still has another window as its main window. This would cause that
+        // window to come to the front, then the correct window some time later.
+        //
+        // pendingFrontmostApplication is to handle another potential race
+        // condition. If a new window is raised before the app responds to the
+        // mainWindow.set, we can invoke frontmostApplication.set _after_
+        // completing the later raise. Keeping a reference to the source of
+        // truth makes sure we always raise the right application.
+        //
+        // FIXME: Note that we don't explicitly model the other race between two
+        // competing mainWindow changes to the same app. We actually should. the
+        // remote app's port/main loop is a serializing point so as long as we
+        // get our requests to it off in order, we'll be fine. However, I don't
+        // think Swindler guarantees this today (arguably a bug).
+        pendingFrontmostApplication = window.application
         window.application.mainWindow.set(window).then { _ in
-            // TODO: Possible race condition here. If a new window is raised
-            // before the app responds to our above request, we should cancel
-            // the following operation.
-            // This has caused a test to fail before.
-            return self.state.frontmostApplication.set(window.application)
+            return self.state.frontmostApplication.set(self.pendingFrontmostApplication!)
         }.catch { err in
             print("Error raising window \(window): \(err)")
         }
