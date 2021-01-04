@@ -16,13 +16,14 @@ class WindowManagerSpec: QuickSpec {
 
         func setup(screens: [FakeScreen]) {
             swindlerState = createState(screens: screens)
-            fakeApp = FakeApplication(parent: swindlerState)
+            fakeApp = createApp(swindlerState)
             swindlerState.frontmostApplication = fakeApp
             a = createWindowForApp(fakeApp, "A")
             b = createWindowForApp(fakeApp, "B")
             c = createWindowForApp(fakeApp, "C")
             d = createWindowForApp(fakeApp, "D")
             e = createWindowForApp(fakeApp, "E")
+            _ = (a, b, c, d, e)
         }
 
         context("with a single screen") {

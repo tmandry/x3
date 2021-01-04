@@ -50,6 +50,19 @@ func createState(screens: [FakeScreen] = [FakeScreen()]) -> FakeState {
     return state
 }
 
+func createApp(_ state: FakeState) -> FakeApplication {
+    var app: FakeApplication!
+    waitUntil { done in
+        FakeApplicationBuilder(parent: state)
+            .build()
+            .done {
+                app = $0
+                done()
+            }.cauterize()
+    }
+    return app
+}
+
 func createWindowForApp(_ app: FakeApplication, _ title: String = "FakeWindow") -> FakeWindow {
     var window: FakeWindow!
     waitUntil { done in

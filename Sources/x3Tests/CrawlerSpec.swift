@@ -11,7 +11,7 @@ class CrawlerSpec: QuickSpec {
 
         func setup(screens: [FakeScreen]) {
             let state = createState(screens: screens)
-            fakeApp = FakeApplication(parent: state)
+            fakeApp = createApp(state)
             a = createWindowForApp(fakeApp, "A")
             b = createWindowForApp(fakeApp, "B")
             c = createWindowForApp(fakeApp, "C")
