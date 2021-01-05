@@ -74,6 +74,43 @@ class WindowManagerSpec: QuickSpec {
                 wm.moveFocus(.right)
                 expect(fakeApp.mainWindow).toEventually(equal(b))
             }
+
+            describe("setLayout") {
+                it("with no windows, sets the direction of the root") {
+                    wm.setLayout(.vertical)
+                    wm.addWindow(a.window)
+                    wm.addWindow(b.window)
+                    expect(a.frame).toEventually(equal(r(x: 0, y: 550, w: 2000, h: 500)))
+                    expect(b.frame).toEventually(equal(r(x: 0, y:  50, w: 2000, h: 500)))
+                }
+
+                it("with windows, creates a new container above the current node") {
+                    wm.addWindow(a.window)
+                    let bNode = wm.addWindowReturningNode(b.window)!
+                    wm.setLayout(.vertical)
+                    wm.addWindow(c.window)
+                    expect(a.frame).toEventually(equal(r(x: 0,    y:  50, w: 1000, h: 1000)))
+                    expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
+                    expect(c.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h:  500)))
+                    expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
+                }
+
+                it("after repeated invocations with no windows added, only creates one container") {
+                    wm.addWindow(a.window)
+                    let bNode = wm.addWindowReturningNode(b.window)!
+                    wm.setLayout(.vertical)
+                    wm.setLayout(.horizontal)
+                    wm.setLayout(.horizontal)
+                    wm.setLayout(.vertical)
+                    wm.setLayout(.horizontal)
+                    wm.setLayout(.vertical)
+                    wm.addWindow(c.window)
+                    expect(a.frame).toEventually(equal(r(x: 0,    y:  50, w: 1000, h: 1000)))
+                    expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
+                    expect(c.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h:  500)))
+                    expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
+                }
+            }
         }
     }
 }

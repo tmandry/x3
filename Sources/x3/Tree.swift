@@ -171,7 +171,7 @@ enum InsertionPolicy {
 }
 
 class ContainerNode: Node {
-    let layout: Layout
+    var layout: Layout
     private(set) var children: [NodeKind]
     fileprivate var selectionData: SelectionData
 

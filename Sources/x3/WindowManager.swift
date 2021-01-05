@@ -110,24 +110,25 @@ public class WindowManager {
         }
 
         hotKeys.register(keyCode: kVK_ANSI_Minus, modifierKeys: optionKey) {
-            if let node = self.focus?.node {
-                self.insertContainerAbove(node, layout: .vertical)
-            }
+            self.setLayout(.vertical)
         }
         hotKeys.register(keyCode: kVK_ANSI_Backslash, modifierKeys: optionKey) {
-            if let node = self.focus?.node {
-                self.insertContainerAbove(node, layout: .horizontal)
-            }
+            self.setLayout(.horizontal)
         }
     }
 
     func addWindow(_ window: Window) {
+        _ = addWindowReturningNode(window)
+    }
+
+    // For testing only.
+    func addWindowReturningNode(_ window: Window) -> WindowNode? {
         if tree.peek().root.contains(window: window) {
-            return
+            return nil
         }
 
+        var node: WindowNode!
         tree.with { tree in
-            var node: WindowNode!
             if let focusNode = focus?.node,
                let parent = focusNode.base.parent {
                 node = parent.createWindow(window, at: .after(focusNode))
@@ -140,6 +141,8 @@ public class WindowManager {
             focus = Crawler(at: node.kind)
             raiseFocus()
         }
+
+        return node
     }
 
     private func onWindowDestroyed(_ window: Window) {
@@ -230,13 +233,29 @@ public class WindowManager {
         }
     }
 
-    func insertContainerAbove(_ node: NodeKind, layout: Layout) {
+    func setLayout(_ layout: Layout) {
+        if let node = self.focus?.node {
+            putContainerAbove(node, layout: layout)
+        } else {
+            tree.peek().root.layout = layout
+        }
+    }
+
+    func putContainerAbove(_ node: NodeKind, layout: Layout) {
         // FIXME: This modifies the tree without calling tree.with!
         // In this case, it does not affect sizing, but we need a more principled
-        // approach here.
+        // approach here. Think Binder in rustc.
         guard let parent = node.base.parent else {
             fatalError("can't reparent the root node")
         }
+
+        if parent.children.count == 1 {
+            // This node already has a container around itself; just set the layout.
+            // This won't affect sizes.
+            parent.layout = layout
+            return
+        }
+
         let container = parent.createContainer(layout: layout, at: .after(node))
         node.node.reparent(container, at: .end)
     }
