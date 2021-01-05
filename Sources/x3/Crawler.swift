@@ -59,7 +59,7 @@ struct Crawler {
         node = at
     }
 
-    init(at: NodeType) {
+    init(at: Node) {
         self.init(at: at.kind)
     }
 

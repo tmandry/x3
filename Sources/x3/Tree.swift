@@ -10,30 +10,43 @@ enum Layout {
 struct Tree {
     let root: ContainerNode
     let screen: Swindler.Screen
+
     init(screen: Swindler.Screen) {
         self.root = ContainerNode(.horizontal, parent: nil)
         self.screen = screen
     }
 
-    func refresh() {
-        root.refresh(rect: screen.applicationFrame)
-    }
-
     func find(window: Swindler.Window) -> WindowNode? {
         return root.find(window: window)
+    }
+
+    func refresh() {
+        root.delegate.refresh_(screen.applicationFrame)
     }
 }
 
 class Node {
     fileprivate(set) var parent: ContainerNode?
     fileprivate var size: Float32
+    private weak var delegate_: NodeDelegate?
+    fileprivate var delegate: NodeDelegate {
+        get { delegate_! }
+        set {
+            assert(delegate_ == nil)
+            delegate_ = newValue
+        }
+    }
 
     fileprivate init(parent: ContainerNode?) {
         self.parent = parent
-        self.size   = 0.0
+        self.size = 0.0
     }
 
-    // Primarily for internal use.
+    var kind: NodeKind {
+        delegate.getKind()
+    }
+
+    // TODO: remove all uses
     var base: Node { return self }
 }
 
@@ -43,22 +56,9 @@ extension Node: Equatable {
     }
 }
 
-protocol NodeType: class {
-    var parent: ContainerNode? { get }
-
-    func find(window: Swindler.Window) -> WindowNode?
-
-    func refresh(rect: CGRect)
-
-    // Primarily for internal use.
-    var base: Node { get }
-
-    var kind: NodeKind { get }
-}
-
-extension NodeType {
+extension Node {
     func reparent(_ newParent: ContainerNode, at point: InsertionPolicy) {
-        guard let oldParent = parent else {
+        guard let oldParent = base.parent else {
             fatalError("can't reparent the root node")
         }
         oldParent.removeChild(self.kind)
@@ -67,22 +67,30 @@ extension NodeType {
     }
 
     func contains(window: Swindler.Window) -> Bool {
-        return self.find(window: window) != nil
+        return self.kind.find(window: window) != nil
     }
 }
 
-extension ContainerNode: NodeType {
-    var kind: NodeKind { get { return .container(self) } }
+extension Node {
+    func find(window: Swindler.Window) -> WindowNode? {
+        delegate.find_(window)
+    }
+    fileprivate func refresh(rect: CGRect) {
+        delegate.refresh_(rect)
+    }
 }
-extension WindowNode: NodeType {
-    var kind: NodeKind { get { return .window(self) } }
+
+fileprivate protocol NodeDelegate: class {
+    func getKind() -> NodeKind
+    func find_(_: Swindler.Window) -> WindowNode?
+    func refresh_(_: CGRect)
 }
 
 enum NodeKind {
     case container(ContainerNode)
     case window(WindowNode)
 
-    var node: NodeType {
+    var base: Node {
         switch self {
         case .container(let node):
             return node
@@ -90,7 +98,18 @@ enum NodeKind {
             return node
         }
     }
-    var base: Node { return node.base }
+
+    // TODO: remove all uses
+    var node: Node { return base }
+}
+
+extension NodeKind {
+    func find(window: Swindler.Window) -> WindowNode? {
+        self.base.find(window: window)
+    }
+    fileprivate func refresh(rect: CGRect) {
+        self.base.refresh(rect: rect)
+    }
 }
 
 extension NodeKind: Equatable {
@@ -134,6 +153,7 @@ class ContainerNode: Node {
         children = []
         selectionData = initSelectionData()
         super.init(parent: parent)
+        super.delegate = self
     }
 
     /// Destroys this node and all of its children and removes them from the tree.
@@ -145,18 +165,27 @@ class ContainerNode: Node {
     }
 }
 
+extension ContainerNode: NodeDelegate {
+    fileprivate func getKind() -> NodeKind { .container(self) }
+}
+
 class WindowNode: Node {
     let window: Swindler.Window
 
     fileprivate init(_ window: Swindler.Window, parent: ContainerNode) {
         self.window = window
         super.init(parent: parent)
+        super.delegate = self
     }
 
     /// Destroys this node and removes it from the parent.
     func destroy() {
         let _ = self.parent!.removeChild(self)
     }
+}
+
+extension WindowNode: NodeDelegate {
+    fileprivate func getKind() -> NodeKind { .window(self) }
 }
 
 private extension String {
@@ -260,12 +289,12 @@ extension ContainerNode {
     }
 }
 extension ContainerNode {
-    func find(window: Swindler.Window) -> WindowNode? {
-        return children.compactMap({$0.node.find(window: window)}).first
+    func find_(_ window: Swindler.Window) -> WindowNode? {
+        return children.compactMap({$0.find(window: window)}).first
     }
 }
 extension WindowNode {
-    func find(window: Swindler.Window) -> WindowNode? {
+    func find_(_ window: Swindler.Window) -> WindowNode? {
         if self.window == window {
             return self
         }
@@ -302,11 +331,11 @@ extension ContainerNode {
         assert(children.reduce(0.0){$0 + $1.base.size}.distance(to: 1.0) < 0.01)
     }
 
-    func refresh(rect: CGRect) {
+    func refresh_(_ rect: CGRect) {
         var start: Float = 0.0
         for child in children {
             let end = start + child.base.size
-            child.node.refresh(rect: rectForSlice(whole: rect, start, end))
+            child.refresh(rect: rectForSlice(whole: rect, start, end))
             start = end
         }
     }
@@ -332,7 +361,7 @@ extension ContainerNode {
     }
 }
 extension WindowNode {
-    func refresh(rect: CGRect) {
+    func refresh_(_ rect: CGRect) {
         print("RESIZING window to \(rect.rounded()) (\(rect)")
         let rect = rect.rounded()
         window.frame.value = rect
