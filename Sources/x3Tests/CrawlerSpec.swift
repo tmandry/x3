@@ -240,6 +240,11 @@ class CrawlerSpec: QuickSpec {
                         cNode.move(inDirection: .down)
                         expect(grandparent.children) == [bNode, cNode, dNode]
                     }
+
+                    it("removes its parent when destroyed") {
+                        cNode.windowNode!.destroy()
+                        expect(grandparent.children) == [bNode, dNode]
+                    }
                 }
             }
         }

@@ -64,16 +64,15 @@ extension Node {
         oldParent.removeChild(self.kind)
         self.base.parent = newParent
         newParent.addChild(self.kind, at: point)
+        oldParent.cullIfEmpty()
+    }
 
-        // Cull empty parents.
-        if oldParent.children.isEmpty {
-            if let oldGrandParent = oldParent.parent {
-                oldGrandParent.removeChild(oldParent)
-
-                // This isn't strictly necessary, but should help to prevent bugs.
-                oldParent.parent = nil
-            }
+    fileprivate func destroy_() {
+        guard let parent = parent else {
+            fatalError("cannot destroy root node")
         }
+        parent.removeChild(self)
+        parent.cullIfEmpty()
     }
 
     func contains(window: Swindler.Window) -> Bool {
@@ -111,6 +110,24 @@ enum NodeKind {
 
     // TODO: remove all uses
     var node: Node { return base }
+
+    var windowNode: WindowNode? {
+        switch self {
+        case .container(_):
+            return nil
+        case .window(let node):
+            return node
+        }
+    }
+
+    var containerNode: ContainerNode? {
+        switch self {
+        case .container(let node):
+            return node
+        case .window(_):
+            return nil
+        }
+    }
 }
 
 extension NodeKind {
@@ -168,10 +185,7 @@ class ContainerNode: Node {
 
     /// Destroys this node and all of its children and removes them from the tree.
     func destroyAll() {
-        guard let parent = parent else {
-            fatalError("cannot destroy root node")
-        }
-        let _ = parent.removeChild(self)
+        destroy_()
     }
 }
 
@@ -190,7 +204,7 @@ class WindowNode: Node {
 
     /// Destroys this node and removes it from the parent.
     func destroy() {
-        let _ = self.parent!.removeChild(self)
+        destroy_()
     }
 }
 
@@ -282,11 +296,22 @@ extension ContainerNode {
             return
         }
         children.remove(at: index)
+
         onRemoveNode()
     }
 
     fileprivate func removeChild(_ node: NodeKind) {
         removeChild(node.base)
+    }
+
+    // Remove ourselves from the tree, if empty.
+    fileprivate func cullIfEmpty() {
+        if children.isEmpty, let parent = parent {
+            parent.removeChild(self)
+
+            // This isn't strictly necessary, but should help to prevent bugs.
+            self.parent = nil
+        }
     }
 
     private func onNewNode(index: Int) {
