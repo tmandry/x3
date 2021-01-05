@@ -25,7 +25,7 @@ struct Tree {
 }
 
 class Node {
-    private(set) var parent: ContainerNode?
+    fileprivate(set) var parent: ContainerNode?
     fileprivate var size: Float32
 
     fileprivate init(parent: ContainerNode?) {
@@ -33,20 +33,8 @@ class Node {
         self.size   = 0.0
     }
 
-    fileprivate func orphan() {
-        parent = nil
-    }
-    fileprivate func reparent(newParent: ContainerNode) {
-        assert(parent == nil)
-        parent = newParent
-    }
-
     // Primarily for internal use.
     var base: Node { return self }
-
-    func removeFromParent() -> MovingNode? {
-        return parent?.removeChild(self)
-    }
 }
 
 extension Node: Equatable {
@@ -69,6 +57,15 @@ protocol NodeType: class {
 }
 
 extension NodeType {
+    func reparent(_ newParent: ContainerNode, at point: InsertionPolicy) {
+        guard let oldParent = parent else {
+            fatalError("can't reparent the root node")
+        }
+        oldParent.removeChild(self.kind)
+        self.base.parent = newParent
+        newParent.addChild(self.kind, at: point)
+    }
+
     func contains(window: Swindler.Window) -> Bool {
         return self.find(window: window) != nil
     }
@@ -79,14 +76,6 @@ extension ContainerNode: NodeType {
 }
 extension WindowNode: NodeType {
     var kind: NodeKind { get { return .window(self) } }
-}
-
-struct MovingNode {
-    let kind: NodeKind
-    fileprivate init(_ node: NodeKind) {
-        assert(node.base.parent == nil)
-        self.kind = node
-    }
 }
 
 enum NodeKind {
@@ -127,18 +116,18 @@ extension NodeKind {
     }
 }
 
+enum InsertionPolicy {
+    case begin
+    case end
+    case before(NodeKind)
+    case after(NodeKind)
+    case at(Int)
+}
+
 class ContainerNode: Node {
     let layout: Layout
     private(set) var children: [NodeKind]
     fileprivate var selectionData: SelectionData
-
-    enum InsertionPolicy {
-        case begin
-        case end
-        case before(NodeKind)
-        case after(NodeKind)
-        case at(Int)
-    }
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
         layout = type
@@ -220,11 +209,10 @@ extension ContainerNode {
         return node
     }
 
-    // TODO: Should there be just a single moveChild method?
-    func addChild(_ child: MovingNode, at: InsertionPolicy) {
-        child.kind.node.base.reparent(newParent: self)
+    fileprivate func addChild(_ child: NodeKind, at: InsertionPolicy) {
+        assert(child.parent == self)
         let index = indexForPolicy(at)
-        children.insert(child.kind, at: index)
+        children.insert(child, at: index)
         onNewNode(index: index)
     }
 
@@ -250,18 +238,16 @@ extension ContainerNode {
     }
 
     // TODO: Make it an error to call with a node who isn't our child
-    func removeChild(_ node: Node) -> MovingNode? {
+    fileprivate func removeChild(_ node: Node) {
         guard let index = children.firstIndex(where: {$0.node === node}) else {
-            return nil
+            return
         }
-        let node = children.remove(at: index)
-        node.base.orphan()
+        children.remove(at: index)
         onRemoveNode()
-        return MovingNode(node)
     }
 
-    func removeChild(_ node: NodeKind) -> MovingNode? {
-        return removeChild(node.base)
+    fileprivate func removeChild(_ node: NodeKind) {
+        removeChild(node.base)
     }
 
     private func onNewNode(index: Int) {

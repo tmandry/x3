@@ -145,10 +145,9 @@ extension NodeKind {
         if self.base.parent == nil {
             fatalError("cannot move root node")
         }
-        newContainer.addChild(self.base.removeFromParent()!, at: point)
+        self.node.reparent(newContainer, at: point)
     }
 
-    typealias InsertionPolicy = ContainerNode.InsertionPolicy
     private func getMoveDestination(from node: NodeKind,
                                     _ direction: Direction) -> (ContainerNode, InsertionPolicy)? {
         // Move in the desired direction.

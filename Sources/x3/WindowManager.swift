@@ -238,6 +238,6 @@ public class WindowManager {
             fatalError("can't reparent the root node")
         }
         let container = parent.createContainer(layout: layout, at: .after(node))
-        container.addChild(parent.removeChild(node.base)!, at: .end)
+        node.node.reparent(container, at: .end)
     }
 }

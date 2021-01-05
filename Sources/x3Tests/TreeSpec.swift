@@ -110,7 +110,7 @@ class TreeSpec: QuickSpec {
                 }
 
                 it("correctly resizes when windows are moved") {
-                    tree.root.addChild(child.removeChild(dnode)!, at: .end)
+                    dnode.reparent(tree.root, at: .end)
                     tree.refresh()
 
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
@@ -142,7 +142,7 @@ class TreeSpec: QuickSpec {
 
                 it("correctly resizes when a container is moved") {
                     // Note: in this case, `child` will end up having only one child window (b).
-                    tree.root.addChild(child.removeChild(grandchild)!, at: .end)
+                    grandchild.reparent(tree.root, at: .end)
                     tree.refresh()
 
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
@@ -151,7 +151,6 @@ class TreeSpec: QuickSpec {
                     expect(d.frame).toEventually(equal(r(x: 1667, y: 50,  w: 334, h: 1000)))
                 }
             }
-
 
             describe("Selection") {
                 var child, grandchild: ContainerNode!
