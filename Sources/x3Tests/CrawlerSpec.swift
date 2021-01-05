@@ -210,6 +210,37 @@ class CrawlerSpec: QuickSpec {
                     expect(root.children) == [aNode, rightChild.kind]
                     expect(rightChild.children) == [bNode, cNode, dNode]
                 }
+
+                context("when a window is the only child of its container") {
+                    var aNode, bNode, cNode, dNode: NodeKind!
+                    var parent, grandparent: ContainerNode!
+                    beforeEach {
+                        root
+                            .makeWindow(a.window) { aNode = $0.kind }
+                            .makeContainer(layout: .vertical) { gp in
+                                grandparent = gp
+                                gp
+                                    .makeWindow(b.window) { bNode = $0.kind }
+                                    .makeContainer(layout: .horizontal) { p in
+                                        parent = p
+                                        p.makeWindow(c.window) { cNode = $0.kind }
+                                    }
+                                    .makeWindow(d.window) { dNode = $0.kind }
+                            }
+                        _ = (aNode, bNode, cNode, dNode, parent, grandparent)
+                        expect(grandparent.children) == [bNode, parent.kind, dNode]
+                    }
+
+                    it("removes its parent when moved up in the direction of its grandparent") {
+                        cNode.move(inDirection: .up)
+                        expect(grandparent.children) == [bNode, cNode, dNode]
+                    }
+
+                    it("removes its parent when moved down in the direction of its grandparent") {
+                        cNode.move(inDirection: .down)
+                        expect(grandparent.children) == [bNode, cNode, dNode]
+                    }
+                }
             }
         }
     }

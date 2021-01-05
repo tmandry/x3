@@ -64,6 +64,16 @@ extension Node {
         oldParent.removeChild(self.kind)
         self.base.parent = newParent
         newParent.addChild(self.kind, at: point)
+
+        // Cull empty parents.
+        if oldParent.children.isEmpty {
+            if let oldGrandParent = oldParent.parent {
+                oldGrandParent.removeChild(oldParent)
+
+                // This isn't strictly necessary, but should help to prevent bugs.
+                oldParent.parent = nil
+            }
+        }
     }
 
     func contains(window: Swindler.Window) -> Bool {
