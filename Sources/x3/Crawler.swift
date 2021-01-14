@@ -53,7 +53,7 @@ extension Direction {
 
 /// A sort of generalized iterator which crawls the tree in all directions.
 struct Crawler {
-    var node: NodeKind
+    private(set) var node: NodeKind
 
     init(at: NodeKind) {
         node = at

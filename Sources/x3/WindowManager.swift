@@ -82,6 +82,12 @@ public class WindowManager {
         hotKeys.register(keyCode: kVK_ANSI_K, modifierKeys: optionKey) {
             self.moveFocus(.up)
         }
+        hotKeys.register(keyCode: kVK_ANSI_U, modifierKeys: optionKey) {
+            self.focusParent()
+        }
+        hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey) {
+            self.focusChild()
+        }
 
         hotKeys.register(keyCode: kVK_ANSI_L, modifierKeys: optionKey | shiftKey) {
             self.moveFocusedNode(.right)
@@ -168,6 +174,20 @@ public class WindowManager {
 
         next.node.base.selectGlobally()
         raiseFocus()
+    }
+
+    func focusParent() {
+        guard let parent = focus?.node.base.parent else {
+            return
+        }
+        focus = Crawler(at: parent)
+    }
+
+    func focusChild() {
+        guard let child = focus?.node.containerNode?.selection else {
+            return
+        }
+        focus = Crawler(at: child)
     }
 
     func moveFocusedNode(_ direction: Direction) {

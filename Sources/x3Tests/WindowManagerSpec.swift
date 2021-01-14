@@ -45,6 +45,13 @@ class WindowManagerSpec: QuickSpec {
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
                 }
+
+                it("raises added window") {
+                    wm.addWindow(a.window)
+                    expect(fakeApp.mainWindow).toEventually(equal(a))
+                    wm.addWindow(b.window)
+                    expect(fakeApp.mainWindow).toEventually(equal(b))
+                }
             }
 
             it("moves focus around") {
@@ -110,6 +117,23 @@ class WindowManagerSpec: QuickSpec {
                     expect(c.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h:  500)))
                     expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
                 }
+            }
+
+            it("allows moving up and down the tree") {
+                wm.addWindow(a.window)
+                wm.addWindow(b.window)
+                wm.setLayout(.vertical)
+                wm.addWindow(c.window)
+                wm.focusParent()
+                wm.moveFocusedNode(.left)
+                expect(a.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h: 1000)))
+                expect(b.frame).toEventually(equal(r(x:    0, y: 550, w: 1000, h:  500)))
+                expect(c.frame).toEventually(equal(r(x:    0, y:  50, w: 1000, h:  500)))
+                wm.focusChild()
+                wm.moveFocusedNode(.right)
+                expect(a.frame).toEventually(equal(r(x: 1333, y:  50, w:  667, h: 1000)))
+                expect(b.frame).toEventually(equal(r(x:    0, y:  50, w:  667, h: 1000)))
+                expect(c.frame).toEventually(equal(r(x:  667, y:  50, w:  667, h: 1000)))
             }
         }
     }
