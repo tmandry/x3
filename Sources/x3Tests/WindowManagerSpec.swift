@@ -82,9 +82,9 @@ class WindowManagerSpec: QuickSpec {
                 expect(fakeApp.mainWindow).toEventually(equal(b))
             }
 
-            describe("setLayout") {
+            describe("split") {
                 it("with no windows, sets the direction of the root") {
-                    wm.setLayout(.vertical)
+                    wm.split(.vertical)
                     wm.addWindow(a.window)
                     wm.addWindow(b.window)
                     expect(a.frame).toEventually(equal(r(x: 0, y: 550, w: 2000, h: 500)))
@@ -94,7 +94,7 @@ class WindowManagerSpec: QuickSpec {
                 it("with windows, creates a new container above the current node") {
                     wm.addWindow(a.window)
                     let bNode = wm.addWindowReturningNode(b.window)!
-                    wm.setLayout(.vertical)
+                    wm.split(.vertical)
                     wm.addWindow(c.window)
                     expect(a.frame).toEventually(equal(r(x: 0,    y:  50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
@@ -105,12 +105,12 @@ class WindowManagerSpec: QuickSpec {
                 it("after repeated invocations with no windows added, only creates one container") {
                     wm.addWindow(a.window)
                     let bNode = wm.addWindowReturningNode(b.window)!
-                    wm.setLayout(.vertical)
-                    wm.setLayout(.horizontal)
-                    wm.setLayout(.horizontal)
-                    wm.setLayout(.vertical)
-                    wm.setLayout(.horizontal)
-                    wm.setLayout(.vertical)
+                    wm.split(.vertical)
+                    wm.split(.horizontal)
+                    wm.split(.horizontal)
+                    wm.split(.vertical)
+                    wm.split(.horizontal)
+                    wm.split(.vertical)
                     wm.addWindow(c.window)
                     expect(a.frame).toEventually(equal(r(x: 0,    y:  50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
@@ -122,7 +122,7 @@ class WindowManagerSpec: QuickSpec {
             it("allows moving up and down the tree") {
                 wm.addWindow(a.window)
                 wm.addWindow(b.window)
-                wm.setLayout(.vertical)
+                wm.split(.vertical)
                 wm.addWindow(c.window)
                 wm.focusParent()
                 wm.moveFocusedNode(.left)

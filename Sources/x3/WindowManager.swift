@@ -116,10 +116,10 @@ public class WindowManager {
         }
 
         hotKeys.register(keyCode: kVK_ANSI_Minus, modifierKeys: optionKey) {
-            self.setLayout(.vertical)
+            self.split(.vertical)
         }
         hotKeys.register(keyCode: kVK_ANSI_Backslash, modifierKeys: optionKey) {
-            self.setLayout(.horizontal)
+            self.split(.horizontal)
         }
     }
 
@@ -253,7 +253,7 @@ public class WindowManager {
         }
     }
 
-    func setLayout(_ layout: Layout) {
+    func split(_ layout: Layout) {
         if let node = self.focus?.node {
             putContainerAbove(node, layout: layout)
         } else {
