@@ -47,6 +47,8 @@ public class WindowManager {
     var tree: TreeWrapper
     var focus: Crawler?
 
+    var addNewWindows: Bool
+
     public var focusedWindow: Window? {
         guard let node = focus?.node else { return nil }
         guard case .window(let windowNode) = node else { return nil }
@@ -57,6 +59,13 @@ public class WindowManager {
         self.state = state
         self.tree = TreeWrapper(Tree(screen: state.screens.last!))
         self.focus = nil
+        self.addNewWindows = false
+
+        state.on { (event: WindowCreatedEvent) in
+            if self.addNewWindows {
+                self.addWindow(event.window)
+            }
+        }
 
         state.on { (event: WindowDestroyedEvent) in
             self.onWindowDestroyed(event.window)
@@ -134,6 +143,10 @@ public class WindowManager {
         }
         hotKeys.register(keyCode: kVK_ANSI_E, modifierKeys: optionKey) {
             self.unstack()
+        }
+
+        hotKeys.register(keyCode: kVK_Return, modifierKeys: optionKey) {
+            self.addNewWindows = !self.addNewWindows
         }
     }
 
