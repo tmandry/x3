@@ -174,11 +174,13 @@ enum InsertionPolicy {
 class ContainerNode: Node {
     var layout: Layout
     private(set) var children: [NodeKind]
+    var wmData: ContainerNodeWmData
     fileprivate var selectionData: SelectionData
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
         layout = type
         children = []
+        wmData = ContainerNodeWmData()
         selectionData = initSelectionData()
         super.init(parent: parent)
         super.delegate = self

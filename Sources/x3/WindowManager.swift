@@ -36,6 +36,10 @@ extension NodeKind {
     }
 }
 
+class ContainerNodeWmData {
+    var unstackLayout: Layout?
+}
+
 /// Defines the basic window management operations and their behavior.
 public class WindowManager {
     var state: Swindler.State
@@ -120,6 +124,16 @@ public class WindowManager {
         }
         hotKeys.register(keyCode: kVK_ANSI_Backslash, modifierKeys: optionKey) {
             self.split(.horizontal)
+        }
+
+        hotKeys.register(keyCode: kVK_ANSI_T, modifierKeys: optionKey) {
+            self.stack(layout: .tabbed)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_S, modifierKeys: optionKey) {
+            self.stack(layout: .stacked)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_E, modifierKeys: optionKey) {
+            self.unstack()
         }
     }
 
@@ -278,5 +292,30 @@ public class WindowManager {
 
         let container = parent.createContainer(layout: layout, at: .after(node))
         node.node.reparent(container, at: .end)
+    }
+
+    /// Converts the parent of the current node to tabbed or stacked layout.
+    func stack(layout: Layout) {
+        assert(layout == .tabbed || layout == .stacked)
+        guard let parent = self.focus?.node.parent else { return }
+        tree.with { tree in
+            if parent.layout == .horizontal || parent.layout == .vertical {
+                parent.wmData.unstackLayout = parent.layout
+            }
+            parent.layout = layout
+        }
+    }
+
+    /// Converts the parent of the current node back to the unstacked layout it
+    /// was in previously.
+    func unstack() {
+        guard let parent = self.focus?.node.parent else { return }
+        if parent.layout == .horizontal || parent.layout == .vertical {
+            return
+        }
+        tree.with { tree in
+            // This node must have had an unstacked layout previously.
+            parent.layout = parent.wmData.unstackLayout!
+        }
     }
 }

@@ -82,6 +82,23 @@ class WindowManagerSpec: QuickSpec {
                 expect(fakeApp.mainWindow).toEventually(equal(b))
             }
 
+            it("allows moving up and down the tree") {
+                wm.addWindow(a.window)
+                wm.addWindow(b.window)
+                wm.split(.vertical)
+                wm.addWindow(c.window)
+                wm.focusParent()
+                wm.moveFocusedNode(.left)
+                expect(a.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h: 1000)))
+                expect(b.frame).toEventually(equal(r(x:    0, y: 550, w: 1000, h:  500)))
+                expect(c.frame).toEventually(equal(r(x:    0, y:  50, w: 1000, h:  500)))
+                wm.focusChild()
+                wm.moveFocusedNode(.right)
+                expect(a.frame).toEventually(equal(r(x: 1333, y:  50, w:  667, h: 1000)))
+                expect(b.frame).toEventually(equal(r(x:    0, y:  50, w:  667, h: 1000)))
+                expect(c.frame).toEventually(equal(r(x:  667, y:  50, w:  667, h: 1000)))
+            }
+
             describe("split") {
                 it("with no windows, sets the direction of the root") {
                     wm.split(.vertical)
@@ -119,21 +136,38 @@ class WindowManagerSpec: QuickSpec {
                 }
             }
 
-            it("allows moving up and down the tree") {
-                wm.addWindow(a.window)
-                wm.addWindow(b.window)
-                wm.split(.vertical)
-                wm.addWindow(c.window)
-                wm.focusParent()
-                wm.moveFocusedNode(.left)
-                expect(a.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h: 1000)))
-                expect(b.frame).toEventually(equal(r(x:    0, y: 550, w: 1000, h:  500)))
-                expect(c.frame).toEventually(equal(r(x:    0, y:  50, w: 1000, h:  500)))
-                wm.focusChild()
-                wm.moveFocusedNode(.right)
-                expect(a.frame).toEventually(equal(r(x: 1333, y:  50, w:  667, h: 1000)))
-                expect(b.frame).toEventually(equal(r(x:    0, y:  50, w:  667, h: 1000)))
-                expect(c.frame).toEventually(equal(r(x:  667, y:  50, w:  667, h: 1000)))
+            describe("stack") {
+                func testStack(to: Layout) {
+                    context("when used on a horizontal layout") {
+                        it("converts to a \(to) and unstacks back to horizontal") {
+                            wm.addWindow(a.window)
+                            wm.addWindow(b.window)
+                            wm.stack(layout: to)
+                            expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
+                            expect(b.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
+                            wm.unstack()
+                            expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                            expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+                        }
+                    }
+
+                    context("when used on a vertical layout") {
+                        it("converts to a \(to) and unstacks back to horizontal") {
+                            wm.split(.vertical)
+                            wm.addWindow(a.window)
+                            wm.addWindow(b.window)
+                            wm.stack(layout: to)
+                            expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
+                            expect(b.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
+                            wm.unstack()
+                            expect(a.frame).toEventually(equal(r(x: 0, y: 550, w: 2000, h: 500)))
+                            expect(b.frame).toEventually(equal(r(x: 0, y:  50, w: 2000, h: 500)))
+                        }
+                    }
+                }
+
+                testStack(to: .stacked)
+                testStack(to: .tabbed)
             }
         }
     }
