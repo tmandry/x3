@@ -120,6 +120,35 @@ class TreeSpec: QuickSpec {
                 }
             }
 
+            func testTabbedOrStacked(_ layout: Layout) {
+                tree.root.createWindow(a.window, at: .end)
+                let parent = tree.root.createContainer(layout: layout, at: .end)
+                parent.createWindow(b.window, at: .end)
+                parent.createWindow(c.window, at: .end)
+                let childContainer = parent.createContainer(layout: .vertical, at: .end)
+                childContainer.createWindow(d.window, at: .end)
+                childContainer.createWindow(e.window, at: .end)
+                tree.refresh()
+
+                expect(a.frame).toEventually(equal(r(x: 0,    y:   50, w: 1000, h: 1000)))
+                expect(b.frame).toEventually(equal(r(x: 1000, y:   50, w: 1000, h: 1000)))
+                expect(c.frame).toEventually(equal(r(x: 1000, y:   50, w: 1000, h: 1000)))
+                expect(d.frame).toEventually(equal(r(x: 1000, y:  550, w: 1000, h:  500)))
+                expect(e.frame).toEventually(equal(r(x: 1000, y:   50, w: 1000, h:  500)))
+            }
+
+            describe("stacked layout") {
+                it("makes all child nodes use the full parent rect") {
+                    testTabbedOrStacked(.stacked)
+                }
+            }
+
+            describe("tabbed layout") {
+                it("makes all child nodes use the full parent rect") {
+                    testTabbedOrStacked(.tabbed)
+                }
+            }
+
             context("when containers are nested 3 deep") {
                 var child, grandchild: ContainerNode!
 

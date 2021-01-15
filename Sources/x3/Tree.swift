@@ -5,6 +5,7 @@ enum Layout {
     case horizontal
     case vertical
     case stacked
+    case tabbed
 }
 
 struct Tree {
@@ -390,6 +391,8 @@ extension ContainerNode {
                           y: (whole.minY + (1.0 - end) * whole.height).rounded(),
                           width: whole.width,
                           height: ((end - start) * whole.height).rounded())
+        case .tabbed:
+            return whole
         case .stacked:
             return whole
         }

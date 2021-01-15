@@ -10,6 +10,7 @@ extension Layout {
         switch (self) {
         case .horizontal: return .horizontal
         case .vertical:   return .vertical
+        case .tabbed:     return .horizontal
         case .stacked:    return .vertical
         }
     }
