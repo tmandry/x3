@@ -86,7 +86,7 @@ public class WindowManager {
         hotKeys.register(keyCode: kVK_ANSI_K, modifierKeys: optionKey) {
             self.moveFocus(.up)
         }
-        hotKeys.register(keyCode: kVK_ANSI_U, modifierKeys: optionKey) {
+        hotKeys.register(keyCode: kVK_ANSI_A, modifierKeys: optionKey) {
             self.focusParent()
         }
         hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey) {
