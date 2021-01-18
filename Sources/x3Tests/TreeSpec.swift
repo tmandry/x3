@@ -39,6 +39,56 @@ class TreeSpec: QuickSpec {
                 tree = Tree(screen: screen.screen)
             }
 
+            describe("insertParent") {
+                context("with a populated tree") {
+                    var root, middle: ContainerNode!
+                    var aNode, bNode, cNode: NodeKind!
+                    beforeEach {
+                        root = tree.root
+                        aNode = root.createWindow(a.window, at: .end).kind
+                        middle = tree.root.createContainer(layout: .vertical, at: .end)
+                        bNode = middle.createWindow(b.window, at: .end).kind
+                        cNode = middle.createWindow(c.window, at: .end).kind
+                    }
+
+                    it("works for middle nodes") {
+                        let inserted = middle.insertParent(layout: .vertical)
+                        expect(tree.root) == root
+                        expect(root.children) == [aNode, inserted.kind]
+                        expect(inserted.children) == [middle.kind]
+                        expect(middle.parent) == inserted
+                        expect(middle.children) == [bNode, cNode]
+                    }
+
+                    it("works for leaf nodes") {
+                        let inserted = bNode.node.insertParent(layout: .vertical)
+                        expect(tree.root) == root
+                        expect(root.children) == [aNode, middle.kind]
+                        expect(middle.children) == [inserted.kind, cNode]
+                        expect(inserted.children) == [bNode]
+                        expect(bNode.parent) == inserted
+                    }
+
+                    it("works for the root node") {
+                        let inserted = root.insertParent(layout: .vertical)
+                        expect(tree.root) == inserted
+                        expect(root.parent) == inserted
+                        expect(inserted.children) == [root.kind]
+                        expect(root.children) == [aNode, middle.kind]
+                        expect(middle.children) == [bNode, cNode]
+                    }
+                }
+
+                context("with an empty tree") {
+                    it("replaces and culls the current root node") {
+                        let root = tree.root
+                        let inserted = root.insertParent(layout: .vertical)
+                        expect(tree.root) == inserted
+                        expect(inserted.children) == []
+                    }
+                }
+            }
+
             it("lays out windows horizontally by default") {
                 tree.root.createWindow(a.window, at: .end)
                 tree.root.createWindow(b.window, at: .end)

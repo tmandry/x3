@@ -119,6 +119,18 @@ class WindowManagerSpec: QuickSpec {
                     expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
                 }
 
+                it("with root selected, creates a new container above the current root") {
+                    wm.addWindow(a.window)
+                    let bNode = wm.addWindowReturningNode(b.window)!
+                    wm.focusParent()
+                    wm.split(.vertical)
+                    wm.addWindow(c.window)
+                    expect(a.frame).toEventually(equal(r(x: 0,    y: 550, w: 1000, h:  500)))
+                    expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
+                    expect(c.frame).toEventually(equal(r(x: 0,    y:  50, w: 2000, h:  500)))
+                    expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
+                }
+
                 it("after repeated invocations with no windows added, only creates one container") {
                     wm.addWindow(a.window)
                     let bNode = wm.addWindowReturningNode(b.window)!

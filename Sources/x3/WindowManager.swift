@@ -292,19 +292,14 @@ public class WindowManager {
         // FIXME: This modifies the tree without calling tree.with!
         // In this case, it does not affect sizing, but we need a more principled
         // approach here. Think Binder in rustc.
-        guard let parent = node.base.parent else {
-            fatalError("can't reparent the root node")
-        }
-
-        if parent.children.count == 1 {
+        if let parent = node.base.parent, parent.children.count == 1 {
             // This node already has a container around itself; just set the layout.
             // This won't affect sizes.
             parent.layout = layout
             return
         }
 
-        let container = parent.createContainer(layout: layout, at: .after(node))
-        node.node.reparent(container, at: .end)
+        node.node.insertParent(layout: layout)
     }
 
     /// Converts the parent of the current node to tabbed or stacked layout.

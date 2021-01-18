@@ -8,13 +8,14 @@ enum Layout {
     case tabbed
 }
 
-struct Tree {
-    let root: ContainerNode
+class Tree {
+    fileprivate(set) var root: ContainerNode
     let screen: Swindler.Screen
 
     init(screen: Swindler.Screen) {
         self.root = ContainerNode(.horizontal, parent: nil)
         self.screen = screen
+        self.root.tree = self
     }
 
     func find(window: Swindler.Window) -> WindowNode? {
@@ -66,6 +67,35 @@ extension Node {
         self.base.parent = newParent
         newParent.addChild(self.kind, at: point)
         oldParent.cullIfEmpty()
+    }
+
+    /// Inserts a new parent above this node with the given layout.
+    ///
+    /// If used on an empty root node, the root node is replaced (culled).
+    @discardableResult
+    func insertParent(layout: Layout) -> ContainerNode {
+        if let parent = parent {
+            let container = parent.createContainer(layout: layout, at: .after(self.kind))
+            reparent(container, at: .end)
+            return container
+        } else {
+            // We are the root node. Create a new root.
+            guard case .container(let oldRoot) = self.kind else {
+                fatalError("Root node not a container")
+            }
+            guard let tree = oldRoot.tree else {
+                fatalError("Root node has no reference to Tree, or Tree has been destroyed")
+            }
+
+            let newRoot = ContainerNode(layout, parent: nil)
+            oldRoot.tree = nil
+            self.parent = newRoot
+            newRoot.addChild(self.kind, at: .end)
+            tree.root = newRoot
+
+            oldRoot.cullIfEmpty()
+            return newRoot
+        }
     }
 
     fileprivate func destroy_() {
@@ -176,6 +206,9 @@ class ContainerNode: Node {
     private(set) var children: [NodeKind]
     var wmData: ContainerNodeWmData
     fileprivate var selectionData: SelectionData
+
+    // Only the root node has a reference to the tree.
+    fileprivate weak var tree: Tree?
 
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
         layout = type
