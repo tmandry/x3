@@ -88,7 +88,7 @@ struct Crawler {
     /// Selects a leaf node according to the requested `DescentStrategy`.
     func move(_ direction: Direction, leaf: DescentStrategy) -> Crawler? {
         // Move in the desired direction.
-        guard let (newContainer, index) = moveOne(node, direction) else {
+        guard let (newContainer, index) = moveOne(node, direction, cursor: true) else {
             return nil
         }
 
@@ -104,7 +104,8 @@ struct Crawler {
     }
 }
 
-fileprivate func moveOne(_ node: NodeKind, _ direction: Direction) -> (ContainerNode, Int)? {
+fileprivate func moveOne(_ node: NodeKind, _ direction: Direction, cursor: Bool)
+-> (ContainerNode, Int)? {
     var child = node
     var container = child.base.parent
     guard container != nil else {
@@ -113,7 +114,8 @@ fileprivate func moveOne(_ node: NodeKind, _ direction: Direction) -> (Container
     }
 
     // Walk up the tree until we're able to move in the right direction (or hit the end).
-    while container != nil && !canMove(direction, in: container!, from: child) {
+    let movingNode = cursor ? nil : node
+    while container != nil && !canMove(direction, in: container!, from: child, movingNode) {
         child     = NodeKind.container(container!)
         container = container!.parent
     }
@@ -128,9 +130,16 @@ fileprivate func moveOne(_ node: NodeKind, _ direction: Direction) -> (Container
 }
 
 /// Checks whether we can move within `container` along direction `d` from `child`.
-fileprivate func canMove(_ d: Direction, in container: ContainerNode, from child: NodeKind) -> Bool {
+fileprivate func canMove(
+    _ d: Direction, in container: ContainerNode, from child: NodeKind, _ movingNode: NodeKind?
+) -> Bool {
     if container.layout.orientation != d.orientation {
         return false
+    }
+    if let node = movingNode, node != child {
+        // The moving node descends from `child`, and therefore can move up to
+        // `container` in its desired direction.
+        return true
     }
     let curIndex = container.children.firstIndex(of: child)!
     let newIndex = curIndex + d.value
@@ -152,25 +161,31 @@ extension NodeKind {
     private func getMoveDestination(from node: NodeKind,
                                     _ direction: Direction) -> (ContainerNode, InsertionPolicy)? {
         // Move in the desired direction.
-        guard let (container, index) = moveOne(node, direction) else {
+        guard let (container, index) = moveOne(node, direction, cursor: false) else {
             return nil
         }
-        let child = container.children[index]
+        if index < 0 {
+            return (container, .begin)
+        } else if index >= container.children.count {
+            return (container, .end)
+        } else {
+            let child = container.children[index]
 
-        // If we hit a leaf, we're done.
-        guard case .container(let childContainer) = child else {
-            // If we are moving node within the same container, then the point we want to insert
-            // at is at index.
-            if container == node.parent {
-                return (container, .at(index))
+            // If we hit a leaf, we're done.
+            guard case .container(let childContainer) = child else {
+                // If we are moving node within the same container, then the point we want to insert
+                // at is at index.
+                if container == node.parent {
+                    return (container, .at(index))
+                }
+                // Otherwise, we are moving up to an ancestor of `node`, and we want to insert it
+                // BETWEEN its current ancestor and the node pointed by `child`.
+                let point: InsertionPolicy = (direction.value < 0) ? .after(child) : .before(child)
+                return (container, point)
             }
-            // Otherwise, we are moving up to an ancestor of `node`, and we want to insert it
-            // BETWEEN its current ancestor and the node pointed by `child`.
-            let point: InsertionPolicy = (direction.value < 0) ? .after(child) : .before(child)
-            return (container, point)
-        }
 
-        return descendToDestination(childContainer, inDirection: direction.opposite)
+            return descendToDestination(childContainer, inDirection: direction.opposite)
+        }
     }
 
     private func descendToDestination(_ container: ContainerNode,

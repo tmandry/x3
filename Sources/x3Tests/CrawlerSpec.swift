@@ -190,26 +190,70 @@ class CrawlerSpec: QuickSpec {
                         expect(grandChild.children) == [dNode, eNode]  // as before
                     }
 
-                    it("moves nodes up to an ancestor and back down") {
-                        root.makeWindow(a.window) { aNode = $0.kind }
-                            .makeContainer(layout: vertical) { n in
-                                rightChild = n
-                                n.makeWindow(b.window) { bNode = $0.kind }
-                                .makeWindow(c.window) { cNode = $0.kind }
-                                .makeWindow(d.window) { dNode = $0.kind }
-                            }
+                    context("when moving perpendicular to its parent") {
+                        it("moves nodes up to an ancestor and back down") {
+                            root.makeWindow(a.window) { aNode = $0.kind }
+                                .makeContainer(layout: vertical) { n in
+                                    rightChild = n
+                                    n.makeWindow(b.window) { bNode = $0.kind }
+                                    .makeWindow(c.window) { cNode = $0.kind }
+                                    .makeWindow(d.window) { dNode = $0.kind }
+                                }
 
-                        aNode.base.selectGlobally()
-                        dNode.base.selectGlobally()
+                            aNode.base.selectGlobally()
+                            dNode.base.selectGlobally()
 
-                        dNode.move(inDirection: .left)
-                        expect(dNode.parent) == root
-                        expect(root.children) == [aNode, dNode, rightChild.kind]
+                            dNode.move(inDirection: .left)
+                            expect(dNode.parent) == root
+                            expect(root.children) == [aNode, dNode, rightChild.kind]
 
-                        dNode.move(inDirection: .right)
-                        expect(dNode.parent) == rightChild
-                        expect(root.children) == [aNode, rightChild.kind]
-                        expect(rightChild.children) == [bNode, cNode, dNode]
+                            dNode.move(inDirection: .right)
+                            expect(dNode.parent) == rightChild
+                            expect(root.children) == [aNode, rightChild.kind]
+                            expect(rightChild.children) == [bNode, cNode, dNode]
+
+                            dNode.move(inDirection: .right)
+                            expect(dNode.parent) == root
+                            expect(root.children) == [aNode, rightChild.kind, dNode]
+
+                            dNode.move(inDirection: .left)
+                            expect(dNode.parent) == rightChild
+                            expect(root.children) == [aNode, rightChild.kind]
+                            expect(rightChild.children) == [bNode, cNode, dNode]
+                        }
+                    }
+
+                    context("when moving parallel but outside its parent") {
+                        it("moves nodes up to an ancestor and back down") {
+                            root.makeWindow(a.window) { aNode = $0.kind }
+                                .makeContainer(layout: horizontal) { n in
+                                    rightChild = n
+                                    n.makeWindow(b.window) { bNode = $0.kind }
+                                    .makeWindow(c.window) { cNode = $0.kind }
+                                    .makeWindow(d.window) { dNode = $0.kind }
+                                }
+
+                            aNode.base.selectGlobally()
+                            dNode.base.selectGlobally()
+
+                            bNode.move(inDirection: .left)
+                            expect(bNode.parent) == root
+                            expect(root.children) == [aNode, bNode, rightChild.kind]
+
+                            bNode.move(inDirection: .right)
+                            expect(bNode.parent) == rightChild
+                            expect(root.children) == [aNode, rightChild.kind]
+                            expect(rightChild.children) == [bNode, cNode, dNode]
+
+                            dNode.move(inDirection: .right)
+                            expect(dNode.parent) == root
+                            expect(root.children) == [aNode, rightChild.kind, dNode]
+
+                            dNode.move(inDirection: .left)
+                            expect(dNode.parent) == rightChild
+                            expect(root.children) == [aNode, rightChild.kind]
+                            expect(rightChild.children) == [bNode, cNode, dNode]
+                        }
                     }
 
                     context("when a window is the only child of its container") {
