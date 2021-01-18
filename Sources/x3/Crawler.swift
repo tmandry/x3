@@ -5,9 +5,19 @@ enum Orientation {
     case vertical
 }
 
+extension Orientation {
+    /// Returns the basic (unstacked) layout associated with this orientation.
+    var asLayout: Layout {
+        switch self {
+        case .horizontal: return .horizontal
+        case .vertical: return .vertical
+        }
+    }
+}
+
 extension Layout {
     var orientation: Orientation {
-        switch (self) {
+        switch self {
         case .horizontal: return .horizontal
         case .vertical:   return .vertical
         case .tabbed:     return .horizontal
@@ -25,7 +35,7 @@ enum Direction {
 
 extension Direction {
     var orientation: Orientation {
-        switch (self) {
+        switch self {
         case .up: return .vertical
         case .down: return .vertical
         case .left: return .horizontal
@@ -34,7 +44,7 @@ extension Direction {
     }
 
     var value: Int {
-        switch (self) {
+        switch self {
         case .up:    return -1
         case .down:  return +1
         case .left:  return -1
@@ -43,7 +53,7 @@ extension Direction {
     }
 
     var opposite: Direction {
-        switch (self) {
+        switch self {
         case .up:    return .down
         case .down:  return .up
         case .left:  return .right
@@ -148,14 +158,35 @@ fileprivate func canMove(
 
 extension NodeKind {
     func move(inDirection direction: Direction) {
-        guard let (newContainer, point) = getMoveDestination(from: self, direction) else {
-            // We couldn't find a move in this direction.
-            return
-        }
-        if self.base.parent == nil {
+        guard let parent = parent else {
+            // should we silently fail?
             fatalError("cannot move root node")
         }
-        self.node.reparent(newContainer, at: point)
+
+        if let (newContainer, point) = getMoveDestination(from: self, direction) {
+            self.node.reparent(newContainer, at: point)
+        } else {
+            // We couldn't find a move in this direction.
+
+            // If we're already in a the root which has same orientation of the
+            // desired move, or we're the only child, then we just "hit the end"
+            // and don't do anything.
+            if parent.parent == nil && (
+                parent.layout.orientation == direction.orientation ||
+                parent.children.count == 1
+            ) {
+                return
+            }
+
+            // Otherwise, allow the move by creating a new top-level container
+            // in the desired orientation.
+            let newParent = findRoot().insertParent(layout: direction.orientation.asLayout)
+
+            // This would fail if self was the empty root node, as it would
+            // now be culled. But we prevent that at the top of this
+            // function.
+            self.node.reparent(newParent, at: (direction.value < 0) ? .begin : .end)
+        }
     }
 
     private func getMoveDestination(from node: NodeKind,

@@ -291,6 +291,65 @@ class CrawlerSpec: QuickSpec {
                             expect(grandparent.children) == [bNode, dNode]
                         }
                     }
+
+                    context("when no parent can support the move") {
+                        context("with only one node") {
+                            it("does nothing") {
+                                var aNode: NodeKind!
+                                let oldRoot = root
+                                root.layout = horizontal
+                                root.makeWindow(a.window) { aNode = $0.kind }
+                                aNode.move(inDirection: .down)
+                                expect(tree.root) == oldRoot
+                                expect(aNode.parent) == oldRoot
+                                expect(oldRoot.layout) == horizontal
+                                expect(oldRoot.children) == [aNode]
+                            }
+                        }
+
+                        context("with only two nodes") {
+                            var oldRoot: ContainerNode!
+                            var aNode, bNode: NodeKind!
+                            beforeEach {
+                                oldRoot = root
+                                root.layout = horizontal
+                                root.makeWindow(a.window) { aNode = $0.kind }
+                                    .makeWindow(b.window) { bNode = $0.kind }
+                            }
+
+                            context("if the root has the same orientation as the move") {
+                                it("does nothing") {
+                                    bNode.move(inDirection: .right)
+                                    expect(tree.root) == oldRoot
+                                    expect(tree.root.layout) == horizontal
+                                    expect(tree.root.children) == [aNode, bNode]
+                                    expect(bNode.parent) == tree.root
+                                }
+                            }
+
+                            context("if the root has a different orientation than the move") {
+                                it("creates a new root and moves the node") {
+                                    bNode.move(inDirection: .down)
+                                    expect(tree.root.children) == [oldRoot.kind, bNode]
+                                    expect(tree.root.layout) == .vertical
+                                    expect(oldRoot.children) == [aNode]
+                                    expect(aNode.parent) == oldRoot
+                                    expect(bNode.parent) == tree.root
+                                }
+                            }
+                        }
+
+                        context("with many nodes") {
+                            it("creates a new root and moves the node") {
+                                let oldRoot = root
+                                makeNestedLayout(rightChild: horizontal, grandChild: horizontal)
+                                cNode.move(inDirection: .down)
+                                expect(cNode.parent) == tree.root
+                                expect(tree.root.layout) == .vertical
+                                expect(tree.root.children) == [oldRoot.kind, cNode]
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -61,7 +61,7 @@ extension Node: Equatable {
 extension Node {
     func reparent(_ newParent: ContainerNode, at point: InsertionPolicy) {
         guard let oldParent = base.parent else {
-            fatalError("can't reparent the root node")
+            fatalError("can't reparent a root or orphaned node: \(self)")
         }
         oldParent.removeChild(self.kind)
         self.base.parent = newParent
@@ -435,7 +435,7 @@ extension ContainerNode {
 }
 extension WindowNode {
     func refresh_(_ rect: CGRect) {
-        print("RESIZING window to \(rect.rounded()) (\(rect)")
+        // print("RESIZING window to \(rect.rounded()) (\(rect)")
         let rect = rect.rounded()
         window.frame.value = rect
     }
