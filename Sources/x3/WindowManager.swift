@@ -40,6 +40,13 @@ class ContainerNodeWmData {
     var unstackLayout: Layout?
 }
 
+extension Window: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        // Right now the PID is the only stable identifier I know of.
+        hasher.combine(self.application.processIdentifier)
+    }
+}
+
 /// Defines the basic window management operations and their behavior.
 public class WindowManager {
     var state: Swindler.State
@@ -48,6 +55,8 @@ public class WindowManager {
     var focus: Crawler?
 
     var addNewWindows: Bool
+
+    var frames: [Window: WindowFrame] = [:]
 
     public var focusedWindow: Window? {
         guard let node = focus?.node else { return nil }
@@ -62,13 +71,35 @@ public class WindowManager {
         self.addNewWindows = false
 
         state.on { (event: WindowCreatedEvent) in
+            if event.window.application.processIdentifier == getpid() {
+                return;
+            }
+
             if self.addNewWindows {
                 self.addWindow(event.window)
             }
+
+            self.frames[event.window] = WindowFrame(around: event.window)
         }
 
         state.on { (event: WindowDestroyedEvent) in
+            if event.window.application.processIdentifier == getpid() {
+                return;
+            }
+
             self.onWindowDestroyed(event.window)
+
+            self.frames.removeValue(forKey: event.window)
+        }
+
+        state.on { (event: WindowFrameChangedEvent) in
+            if event.window.application.processIdentifier == getpid() {
+                return;
+            }
+
+            if let winFrame = self.frames[event.window] {
+                winFrame.contentRect = event.newValue
+            }
         }
 
         // TODO: Add FocusedWindowChangedEvent to Swindler
