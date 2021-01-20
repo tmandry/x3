@@ -4,6 +4,8 @@
 .build/
 build/
 DerivedData
+*.xcodeproj
+*.xcworkspace
 
 ## Various settings
 *.pbxuser
