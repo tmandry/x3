@@ -7,7 +7,7 @@ let package = Package(
     name: "x3",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v10_10),
+        .macOS(.v10_12),
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.

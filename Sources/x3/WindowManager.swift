@@ -102,6 +102,16 @@ public class WindowManager {
             }
         }
 
+        state.on { (event: WindowTitleChangedEvent) in
+            if event.window.application.processIdentifier == getpid() {
+                return;
+            }
+
+            if let winFrame = self.frames[event.window] {
+                winFrame.title = event.newValue
+            }
+        }
+
         // TODO: Add FocusedWindowChangedEvent to Swindler
         state.on { (event: FrontmostApplicationChangedEvent) in
             self.onFocusedWindowChanged(window: event.newValue?.focusedWindow.value)

@@ -4,8 +4,14 @@ import Swindler
 class WindowFrame: NSObject, NSWindowDelegate {
     var config: WindowFrameSpec = WindowFrameSpec()
 
+    var title: String {
+        get { border.title }
+        set { border.title = newValue }
+    }
+
     private var win: NSWindow
     private var inner: Swindler.Window
+    private var border: Border
 
     init(around window: Swindler.Window) {
         let rect = config.insetEdges.unapply(to: window.frame.value)
@@ -16,6 +22,11 @@ class WindowFrame: NSObject, NSWindowDelegate {
         win.isReleasedWhenClosed = false
 
         inner = window
+
+        border = Border(frame: win.frame, config: config)
+        border.title = inner.title.value
+        win.contentView = border
+
         super.init()
 
         // We can handle mouse events and drag/resize the inner window, but it
@@ -29,11 +40,7 @@ class WindowFrame: NSObject, NSWindowDelegate {
         win.level = .floating
         win.hasShadow = false
         win.backgroundColor = NSColor.clear
-
         win.animationBehavior = .none
-        let border = Border(frame: win.frame)
-        border.config = config
-        win.contentView = border
 
         win.makeKeyAndOrderFront(nil)
     }
@@ -96,6 +103,15 @@ struct WindowFrameSpec {
             top: thickness + headerHeight,
             bottom: thickness)
     }
+
+    func textFrame(size: NSSize) -> NSRect {
+        let margin = radius / 2
+        return NSRect(
+            x: margin,
+            y: size.height - thickness - headerHeight,
+            width: size.width - 2 * margin,
+            height: headerHeight)
+    }
 }
 
 struct InsetEdges {
@@ -119,13 +135,33 @@ struct InsetEdges {
 }
 
 class Border: NSView {
-    var config: WindowFrameSpec = WindowFrameSpec()
+    var config: WindowFrameSpec
+    var text: NSTextField
+
+    var title: String {
+        get { text.stringValue }
+        set { text.stringValue = newValue }
+    }
+
+    init(frame: NSRect, config: WindowFrameSpec) {
+        self.config = config
+        text = NSTextField(labelWithString: "")
+        text.frame = config.textFrame(size: frame.size)
+        text.alignment = .center
+        super.init(frame: frame)
+        addSubview(text)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("unimplemented")
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         let thickness = config.thickness
         let headerHeight = config.headerHeight
         let radius = config.radius
 
+        // Is this correct?
         let wholeRect = frame.insetBy(dx: thickness / 2.0, dy: thickness / 2.0)
 
         let (headerRect, frameRect) = wholeRect.divided(atDistance: headerHeight, from: .maxYEdge)
