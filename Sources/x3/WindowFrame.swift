@@ -2,7 +2,13 @@ import Cocoa
 import Swindler
 
 class WindowFrame: NSObject, NSWindowDelegate {
-    var spec: WindowFrameSpec
+    var spec: WindowFrameSpec {
+        get { border.spec }
+        set {
+            border.spec = newValue
+            border.needsToDraw(border.frame)
+        }
+    }
 
     var title: String {
         get { border.title }
@@ -20,7 +26,6 @@ class WindowFrame: NSObject, NSWindowDelegate {
     }
 
     init(_ spec: WindowFrameSpec, frame: CGRect) {
-        self.spec = spec
         let rect = spec.insetEdges.unapply(to: frame)
         win = NSWindow(contentRect: rect, styleMask: .resizable, backing: .buffered, defer: true)
 
@@ -53,6 +58,11 @@ class WindowFrame: NSObject, NSWindowDelegate {
         win.close()
     }
 
+    var frame: CGRect {
+        get { win.frame }
+        set { win.setFrame(newValue, display: true) }
+    }
+
     var contentRect: CGRect {
         get {
             spec.insetEdges.apply(to: win.frame)
@@ -61,7 +71,7 @@ class WindowFrame: NSObject, NSWindowDelegate {
             if win.inLiveResize {
                 return;
             }
-            win.setFrame(spec.insetEdges.unapply(to: newValue), display: false)
+            win.setFrame(spec.insetEdges.unapply(to: newValue), display: true)
         }
     }
 
@@ -154,7 +164,6 @@ class Border: NSView {
     init(frame: NSRect, spec: WindowFrameSpec) {
         self.spec = spec
         text = NSTextField(labelWithString: "")
-        text.frame = spec.textFrame(size: frame.size)
         text.alignment = .center
         super.init(frame: frame)
         addSubview(text)
@@ -202,6 +211,11 @@ class Border: NSView {
             path.lineWidth = thickness
             path.stroke()
             path.fill()
+
+            text.frame = spec.textFrame(size: frame.size)
+            text.isHidden = false
+        } else {
+            text.isHidden = true
         }
 
         NSColor.lightGray.setStroke()

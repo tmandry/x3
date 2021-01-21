@@ -79,8 +79,8 @@ public class WindowManager {
                 self.addWindow(event.window)
             }
 
-            self.frames[event.window] =
-                WindowFrame(WindowFrameSpec(header: true), around: event.window)
+            //self.frames[event.window] =
+            //    WindowFrame(WindowFrameSpec(header: true), around: event.window)
         }
 
         state.on { (event: WindowDestroyedEvent) in

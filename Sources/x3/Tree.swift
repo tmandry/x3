@@ -38,6 +38,7 @@ class Node {
             delegate_ = newValue
         }
     }
+    fileprivate var frame: WindowFrame?
 
     fileprivate init(parent: ContainerNode?) {
         self.parent = parent
@@ -202,7 +203,15 @@ enum InsertionPolicy {
 }
 
 class ContainerNode: Node {
-    var layout: Layout
+    var layout: Layout {
+        didSet {
+            if layout == .horizontal || layout == .vertical {
+                frame = nil
+            } else {
+                ensureFrame(spec: WindowFrameSpec(header: true))
+            }
+        }
+    }
     private(set) var children: [NodeKind]
     var wmData: ContainerNodeWmData
     fileprivate var selectionData: SelectionData
@@ -217,6 +226,14 @@ class ContainerNode: Node {
         selectionData = initSelectionData()
         super.init(parent: parent)
         super.delegate = self
+    }
+
+    private func ensureFrame(spec: WindowFrameSpec) {
+        if let frame = frame {
+            frame.spec = spec
+        } else {
+            frame = WindowFrame(spec, frame: CGRect())
+        }
     }
 
     /// Destroys this node and all of its children and removes them from the tree.
@@ -236,6 +253,8 @@ class WindowNode: Node {
         self.window = window
         super.init(parent: parent)
         super.delegate = self
+
+        frame = WindowFrame(WindowFrameSpec(header: false), frame: CGRect())
     }
 
     /// Destroys this node and removes it from the parent.
@@ -402,11 +421,16 @@ extension ContainerNode {
         assert(children.reduce(0.0){$0 + $1.base.size}.distance(to: 1.0) < 0.01)
     }
 
-    func refresh_(_ rect: CGRect) {
+    func refresh_(_ outer: CGRect) {
+        let inner = self.frame?.spec.insetEdges.apply(to: outer) ?? outer
+        self.frame?.title = String(describing: self)
+        self.frame?.frame = outer
+
         var start: Float = 0.0
         for child in children {
             let end = start + child.base.size
-            child.refresh(rect: rectForSlice(whole: rect, start, end))
+            let slice = rectForSlice(whole: inner, start, end)
+            child.refresh(rect: slice)
             start = end
         }
     }
@@ -434,10 +458,11 @@ extension ContainerNode {
     }
 }
 extension WindowNode {
-    func refresh_(_ rect: CGRect) {
+    func refresh_(_ outer: CGRect) {
         // print("RESIZING window to \(rect.rounded()) (\(rect)")
-        let rect = rect.rounded()
-        window.frame.value = rect
+        self.frame?.frame = outer
+        let inner = self.frame?.spec.insetEdges.apply(to: outer) ?? outer
+        window.frame.value = inner.rounded()
     }
 }
 private extension CGRect {
