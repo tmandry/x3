@@ -2,7 +2,7 @@ import Cocoa
 import Swindler
 
 class WindowFrame: NSObject, NSWindowDelegate {
-    var config: WindowFrameSpec = WindowFrameSpec()
+    var spec: WindowFrameSpec
 
     var title: String {
         get { border.title }
@@ -10,21 +10,25 @@ class WindowFrame: NSObject, NSWindowDelegate {
     }
 
     private var win: NSWindow
-    private var inner: Swindler.Window
+    private var inner: Swindler.Window?
     private var border: Border
 
-    init(around window: Swindler.Window) {
-        let rect = config.insetEdges.unapply(to: window.frame.value)
+    convenience init(_ spec: WindowFrameSpec, around window: Swindler.Window) {
+        self.init(spec, frame: window.frame.value)
+        inner = window
+        border.title = window.title.value
+    }
+
+    init(_ spec: WindowFrameSpec, frame: CGRect) {
+        self.spec = spec
+        let rect = spec.insetEdges.unapply(to: frame)
         win = NSWindow(contentRect: rect, styleMask: .resizable, backing: .buffered, defer: true)
 
         // Important: win is implicitly Arc'd, which conflicts with the default
         // autorelease-on-close behavior.
         win.isReleasedWhenClosed = false
 
-        inner = window
-
-        border = Border(frame: win.frame, config: config)
-        border.title = inner.title.value
+        border = Border(frame: win.frame, spec: spec)
         win.contentView = border
 
         super.init()
@@ -51,13 +55,13 @@ class WindowFrame: NSObject, NSWindowDelegate {
 
     var contentRect: CGRect {
         get {
-            config.insetEdges.apply(to: win.frame)
+            spec.insetEdges.apply(to: win.frame)
         }
         set {
             if win.inLiveResize {
                 return;
             }
-            win.setFrame(config.insetEdges.unapply(to: newValue), display: false)
+            win.setFrame(spec.insetEdges.unapply(to: newValue), display: false)
         }
     }
 
@@ -78,21 +82,25 @@ class WindowFrame: NSObject, NSWindowDelegate {
     }
 
     private func updateFrame(_ frame: CGRect) {
-        let newInnerFrame = config.insetEdges.apply(to: frame)
-        if inner.frame.value != newInnerFrame {
-            inner.frame.value = newInnerFrame
+        let newInnerFrame = spec.insetEdges.apply(to: frame)
+        if inner?.frame.value != newInnerFrame {
+            inner?.frame.value = newInnerFrame
         }
     }
 }
 
 struct WindowFrameSpec {
-    var thickness: CGFloat
-    var headerHeight: CGFloat
-    var radius: CGFloat
+    private var headerHeight_: CGFloat
 
-    init() {
+    var thickness: CGFloat
+    var header: Bool
+    var radius: CGFloat
+    var headerHeight: CGFloat { header ? headerHeight_ : 0 }
+
+    init(header withHeader: Bool) {
         thickness = 2
-        headerHeight = 20
+        headerHeight_ = 20
+        header = withHeader
         radius = 24 + thickness
     }
 
@@ -135,7 +143,7 @@ struct InsetEdges {
 }
 
 class Border: NSView {
-    var config: WindowFrameSpec
+    var spec: WindowFrameSpec
     var text: NSTextField
 
     var title: String {
@@ -143,10 +151,10 @@ class Border: NSView {
         set { text.stringValue = newValue }
     }
 
-    init(frame: NSRect, config: WindowFrameSpec) {
-        self.config = config
+    init(frame: NSRect, spec: WindowFrameSpec) {
+        self.spec = spec
         text = NSTextField(labelWithString: "")
-        text.frame = config.textFrame(size: frame.size)
+        text.frame = spec.textFrame(size: frame.size)
         text.alignment = .center
         super.init(frame: frame)
         addSubview(text)
@@ -157,45 +165,18 @@ class Border: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let thickness = config.thickness
-        let headerHeight = config.headerHeight
-        let radius = config.radius
+        let thickness = spec.thickness
+        let headerHeight = spec.headerHeight
+        let radius = spec.radius
 
         // Is this correct?
         let wholeRect = frame.insetBy(dx: thickness / 2.0, dy: thickness / 2.0)
 
         let (headerRect, frameRect) = wholeRect.divided(atDistance: headerHeight, from: .maxYEdge)
 
-        NSColor.lightGray.setStroke()
-        NSColor.lightGray.setFill()
-
-        do {
-            let rect = frameRect
-            let path = NSBezierPath()
-
-            let topLeft = NSPoint(x: rect.minX, y: rect.maxY)
-            path.move(to: NSPoint(x: rect.minX + radius, y: rect.maxY))
-            path.curve(to: NSPoint(x: rect.minX, y: rect.maxY - radius), controlPoint1: topLeft, controlPoint2: topLeft)
-
-            let botLeft = NSPoint(x: rect.minX, y: rect.minY)
-            path.line(to: NSPoint(x: rect.minX, y: rect.minY + radius))
-            path.curve(to: NSPoint(x: rect.minX + radius, y: rect.minY), controlPoint1: botLeft, controlPoint2: botLeft)
-
-            let botRight = NSPoint(x: rect.maxX, y: rect.minY)
-            path.line(to: NSPoint(x: rect.maxX - radius, y: rect.minY))
-            path.curve(to: NSPoint(x: rect.maxX, y: rect.minY + radius), controlPoint1: botRight, controlPoint2: botRight)
-
-            let topRight = NSPoint(x: rect.maxX, y: rect.maxY)
-            path.line(to: NSPoint(x: rect.maxX, y: rect.maxY - radius))
-            path.curve(to: NSPoint(x: rect.maxX - radius, y: rect.maxY), controlPoint1: topRight, controlPoint2: topRight)
-
-            //path.line(to: NSPoint(x: rect.minX, y: rect.maxY))
-
-            path.lineWidth = thickness
-            path.stroke()
-        }
-
-        do {
+        NSColor.gray.setStroke()
+        NSColor.gray.setFill()
+        if spec.header {
             let rect = headerRect
             let path = NSBezierPath()
 
@@ -216,12 +197,41 @@ class Border: NSView {
             path.line(to: NSPoint(x: rect.maxX, y: rect.maxY - radius))
             path.curve(to: NSPoint(x: rect.maxX - radius, y: rect.maxY), controlPoint1: topRight, controlPoint2: topRight)
 
-            path.line(to: startingPoint)
+            //path.line(to: startingPoint)
 
             path.lineWidth = thickness
             path.stroke()
             path.fill()
         }
+
+        NSColor.lightGray.setStroke()
+        do {
+            let rect = wholeRect
+            let path = NSBezierPath()
+
+            let topLeft = NSPoint(x: rect.minX, y: rect.maxY)
+            let startingPoint = NSPoint(x: rect.minX + radius, y: rect.maxY)
+            path.move(to: startingPoint)
+            path.curve(to: NSPoint(x: rect.minX, y: rect.maxY - radius), controlPoint1: topLeft, controlPoint2: topLeft)
+
+            let botLeft = NSPoint(x: rect.minX, y: rect.minY)
+            path.line(to: NSPoint(x: rect.minX, y: rect.minY + radius))
+            path.curve(to: NSPoint(x: rect.minX + radius, y: rect.minY), controlPoint1: botLeft, controlPoint2: botLeft)
+
+            let botRight = NSPoint(x: rect.maxX, y: rect.minY)
+            path.line(to: NSPoint(x: rect.maxX - radius, y: rect.minY))
+            path.curve(to: NSPoint(x: rect.maxX, y: rect.minY + radius), controlPoint1: botRight, controlPoint2: botRight)
+
+            let topRight = NSPoint(x: rect.maxX, y: rect.maxY)
+            path.line(to: NSPoint(x: rect.maxX, y: rect.maxY - radius))
+            path.curve(to: NSPoint(x: rect.maxX - radius, y: rect.maxY), controlPoint1: topRight, controlPoint2: topRight)
+
+            path.line(to: startingPoint)
+
+            path.lineWidth = thickness
+            path.stroke()
+        }
+
 
         //let border = NSBezierPath(roundedRect: rect, xRadius: thickness, yRadius: thickness)
         //border.lineWidth = thickness
