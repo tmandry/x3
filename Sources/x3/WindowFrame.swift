@@ -111,7 +111,7 @@ struct WindowFrameSpec {
         thickness = 2
         headerHeight_ = 20
         header = withHeader
-        radius = 24 + thickness
+        radius = 27 + thickness
     }
 
     var insetEdges: InsetEdges {
