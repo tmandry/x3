@@ -1,5 +1,8 @@
+import Foundation
 import Swindler
+import Quick
 import Nimble
+import PromiseKit
 @testable import x3
 
 /// "Builder" interface for ContainerNodes.
@@ -72,4 +75,25 @@ func createWindowForApp(_ app: FakeApplication, _ title: String = "FakeWindow") 
         }.cauterize()
     }
     return window
+}
+
+func it(_ desc: String,
+        timeout: TimeInterval = 1.0,
+        failOnError: Bool = true,
+        file: FileString = #file,
+        line: UInt = #line,
+        closure: @escaping () -> Promise<()>) {
+    it(desc, file: file.description, line: line, closure: {
+        let promise = closure()
+        waitUntil(timeout: timeout, file: file, line: line) { done in
+            promise.done { _ in
+                done()
+            }.catch { error in
+                if failOnError {
+                    fail("Promise failed with error \(error)", file: file, line: line)
+                }
+                done()
+            }
+        }
+    } as () -> Void)
 }

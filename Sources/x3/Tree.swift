@@ -1,5 +1,6 @@
 import Cocoa
 import Swindler
+import PromiseKit
 
 enum Layout {
     case horizontal
@@ -23,7 +24,14 @@ class Tree {
     }
 
     func refresh() {
-        root.delegate.refresh_(screen.applicationFrame)
+        var promises: [Promise<()>]? = nil
+        root.delegate.refresh_(screen.applicationFrame, &promises)
+    }
+
+    func awaitRefresh() -> Promise<()> {
+        var promises: [Promise<()>]? = []
+        root.delegate.refresh_(screen.applicationFrame, &promises)
+        return when(fulfilled: promises!)
     }
 }
 
@@ -115,15 +123,15 @@ extension Node {
     func find(window: Swindler.Window) -> WindowNode? {
         delegate.find_(window)
     }
-    fileprivate func refresh(rect: CGRect) {
-        delegate.refresh_(rect)
+    fileprivate func refresh(rect: CGRect, _ promises: inout [Promise<()>]?) {
+        delegate.refresh_(rect, &promises)
     }
 }
 
 fileprivate protocol NodeDelegate: class {
     func getKind() -> NodeKind
     func find_(_: Swindler.Window) -> WindowNode?
-    func refresh_(_: CGRect)
+    func refresh_(_: CGRect, _: inout [Promise<()>]?)
 }
 
 enum NodeKind {
@@ -165,8 +173,8 @@ extension NodeKind {
     func find(window: Swindler.Window) -> WindowNode? {
         self.base.find(window: window)
     }
-    fileprivate func refresh(rect: CGRect) {
-        self.base.refresh(rect: rect)
+    fileprivate func refresh(rect: CGRect, _ promises: inout [Promise<()>]?) {
+        self.base.refresh(rect: rect, &promises)
     }
 }
 
@@ -402,11 +410,11 @@ extension ContainerNode {
         assert(children.reduce(0.0){$0 + $1.base.size}.distance(to: 1.0) < 0.01)
     }
 
-    func refresh_(_ rect: CGRect) {
+    func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
         var start: Float = 0.0
         for child in children {
             let end = start + child.base.size
-            child.refresh(rect: rectForSlice(whole: rect, start, end))
+            child.refresh(rect: rectForSlice(whole: rect, start, end), &promises)
             start = end
         }
     }
@@ -433,13 +441,18 @@ extension ContainerNode {
         }
     }
 }
+
 extension WindowNode {
-    func refresh_(_ rect: CGRect) {
+    func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
         // print("RESIZING window to \(rect.rounded()) (\(rect)")
         let rect = rect.rounded()
-        window.frame.value = rect
+        let promise = window.frame.set(rect)
+        if promises != nil {
+            promises!.append(promise.map({_ in ()}))
+        }
     }
 }
+
 private extension CGRect {
     func rounded() -> CGRect {
         return CGRect(x: self.minX.rounded(), y: self.minY.rounded(),

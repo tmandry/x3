@@ -2,6 +2,7 @@ import Cocoa
 import Nimble
 import Quick
 import Swindler
+import PromiseKit
 @testable import x3
 
 private func r(x: Int, y: Int, w: Int, h: Int) -> CGRect {
@@ -90,53 +91,60 @@ class TreeSpec: QuickSpec {
             }
 
             it("lays out windows horizontally by default") {
-                tree.root.createWindow(a.window, at: .end)
-                tree.root.createWindow(b.window, at: .end)
-                tree.refresh()
-
-                expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
-                expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
-
-                tree.root.createWindow(c.window, at: .end)
-                tree.refresh()
-
-                expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 667, h: 1000)))
-                expect(b.frame).toEventually(equal(r(x: 667,  y: 50, w: 667, h: 1000)))
-                expect(c.frame).toEventually(equal(r(x: 1333, y: 50, w: 667, h: 1000)))
+                return firstly { () -> Promise<()> in
+                    tree.root.createWindow(a.window, at: .end)
+                    tree.root.createWindow(b.window, at: .end)
+                    return tree.awaitRefresh()
+                }.done {
+                    expect(a.frame).to(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+                }.then { () -> Promise<()> in
+                    tree.root.createWindow(c.window, at: .end)
+                    return tree.awaitRefresh()
+                }.done {
+                    expect(a.frame).to(equal(r(x: 0,    y: 50, w: 667, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 667,  y: 50, w: 667, h: 1000)))
+                    expect(c.frame).to(equal(r(x: 1333, y: 50, w: 667, h: 1000)))
+                }
             }
 
-            it("removes windows when they are destroyed") {
+            it("removes windows when they are destroyed") { () -> Promise<()> in
                 let anode = tree.root.createWindow(a.window, at: .end)
                 let bnode = tree.root.createWindow(b.window, at: .end)
                 let cnode = tree.root.createWindow(c.window, at: .end)
-                tree.refresh()
-
-                bnode.destroy()
-                tree.refresh()
-
-                expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
-                expect(c.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
-
-                anode.destroy()
-                tree.refresh()
-
-                expect(c.frame).toEventually(equal(r(x: 0, y: 50, w: 2000, h: 1000)))
-
-                // Test that we don't crash upon destroying the last window.
-                cnode.destroy()
-                tree.refresh()
+                return firstly { () -> Promise<()> in
+                    return tree.awaitRefresh()
+                }.then { () -> Promise<()> in
+                    bnode.destroy()
+                    return tree.awaitRefresh()
+                }.done {
+                    expect(a.frame).to(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(c.frame).to(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+                }.then { () -> Promise<()> in
+                    anode.destroy()
+                    return tree.awaitRefresh()
+                }.done {
+                    expect(c.frame).to(equal(r(x: 0, y: 50, w: 2000, h: 1000)))
+                }.then { () -> Promise<()> in
+                    // Test that we don't crash upon destroying the last window.
+                    cnode.destroy()
+                    return tree.awaitRefresh()
+                }
             }
 
             it("allows nesting a horizontal container inside horizontal") {
-                tree.root.createWindow(a.window, at: .end)
-                let child = tree.root.createContainer(layout: .horizontal, at: .end)
-                child.createWindow(b.window, at: .end)
-                child.createWindow(c.window, at: .end)
-                tree.refresh()
+                return firstly { () -> Promise<()> in
+                    tree.root.createWindow(a.window, at: .end)
+                    let child = tree.root.createContainer(layout: .horizontal, at: .end)
+                    child.createWindow(b.window, at: .end)
+                    child.createWindow(c.window, at: .end)
 
-                expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
-                expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 500,  h: 1000)))
-                expect(c.frame).toEventually(equal(r(x: 1500, y: 50, w: 500,  h: 1000)))
+                    return tree.awaitRefresh()
+                }.done {
+                    expect(a.frame).to(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 1000, y: 50, w: 500,  h: 1000)))
+                    expect(c.frame).to(equal(r(x: 1500, y: 50, w: 500,  h: 1000)))
+                }
             }
 
             context("when a vertical container is nested inside a horizontal") {
@@ -149,42 +157,48 @@ class TreeSpec: QuickSpec {
                     child.createWindow(b.window, at: .end)
                     child.createWindow(c.window, at: .end)
                     dnode = child.createWindow(d.window, at: .end)
-                    tree.refresh()
+                    waitUntil { done in
+                        tree.awaitRefresh().done { done() }.cauterize()
+                    }
                 }
 
                 it("sizes windows correctly") {
-                    expect(a.frame).toEventually(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
-                    expect(b.frame).toEventually(equal(r(x: 1000, y: 717, w: 1000, h: 333)))
-                    expect(c.frame).toEventually(equal(r(x: 1000, y: 383, w: 1000, h: 333)))
-                    expect(d.frame).toEventually(equal(r(x: 1000, y: 50,  w: 1000, h: 333)))
+                    expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 1000, y: 717, w: 1000, h: 333)))
+                    expect(c.frame).to(equal(r(x: 1000, y: 383, w: 1000, h: 333)))
+                    expect(d.frame).to(equal(r(x: 1000, y: 50,  w: 1000, h: 333)))
                 }
 
                 it("correctly resizes when windows are moved") {
-                    dnode.reparent(tree.root, at: .end)
-                    tree.refresh()
-
-                    expect(a.frame).toEventually(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
-                    expect(b.frame).toEventually(equal(r(x: 667,  y: 550, w: 667, h: 500)))
-                    expect(c.frame).toEventually(equal(r(x: 667,  y: 50,  w: 667, h: 500)))
-                    expect(d.frame).toEventually(equal(r(x: 1333, y: 50,  w: 667, h: 1000)))
+                    return firstly { () -> Promise<()> in
+                        dnode.reparent(tree.root, at: .end)
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 667,  y: 550, w: 667, h: 500)))
+                        expect(c.frame).to(equal(r(x: 667,  y: 50,  w: 667, h: 500)))
+                        expect(d.frame).to(equal(r(x: 1333, y: 50,  w: 667, h: 1000)))
+                    }
                 }
             }
 
-            func testTabbedOrStacked(_ layout: Layout) {
-                tree.root.createWindow(a.window, at: .end)
-                let parent = tree.root.createContainer(layout: layout, at: .end)
-                parent.createWindow(b.window, at: .end)
-                parent.createWindow(c.window, at: .end)
-                let childContainer = parent.createContainer(layout: .vertical, at: .end)
-                childContainer.createWindow(d.window, at: .end)
-                childContainer.createWindow(e.window, at: .end)
-                tree.refresh()
-
-                expect(a.frame).toEventually(equal(r(x: 0,    y:   50, w: 1000, h: 1000)))
-                expect(b.frame).toEventually(equal(r(x: 1000, y:   50, w: 1000, h: 1000)))
-                expect(c.frame).toEventually(equal(r(x: 1000, y:   50, w: 1000, h: 1000)))
-                expect(d.frame).toEventually(equal(r(x: 1000, y:  550, w: 1000, h:  500)))
-                expect(e.frame).toEventually(equal(r(x: 1000, y:   50, w: 1000, h:  500)))
+            func testTabbedOrStacked(_ layout: Layout) -> Promise<()> {
+                return firstly { () -> Promise<()> in
+                    tree.root.createWindow(a.window, at: .end)
+                    let parent = tree.root.createContainer(layout: layout, at: .end)
+                    parent.createWindow(b.window, at: .end)
+                    parent.createWindow(c.window, at: .end)
+                    let childContainer = parent.createContainer(layout: .vertical, at: .end)
+                    childContainer.createWindow(d.window, at: .end)
+                    childContainer.createWindow(e.window, at: .end)
+                    return tree.awaitRefresh()
+                }.done {
+                    expect(a.frame).to(equal(r(x: 0,    y:   50, w: 1000, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 1000, y:   50, w: 1000, h: 1000)))
+                    expect(c.frame).to(equal(r(x: 1000, y:   50, w: 1000, h: 1000)))
+                    expect(d.frame).to(equal(r(x: 1000, y:  550, w: 1000, h:  500)))
+                    expect(e.frame).to(equal(r(x: 1000, y:   50, w: 1000, h:  500)))
+                }
             }
 
             describe("stacked layout") {
@@ -209,25 +223,29 @@ class TreeSpec: QuickSpec {
                     grandchild = child.createContainer(layout: .horizontal, at: .end)
                     grandchild.createWindow(c.window, at: .end)
                     grandchild.createWindow(d.window, at: .end)
-                    tree.refresh()
+                    waitUntil { done in
+                        tree.awaitRefresh().done { done() }.cauterize()
+                    }
                 }
 
                 it("sizes windows correctly") {
-                    expect(a.frame).toEventually(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
-                    expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h: 500)))
-                    expect(c.frame).toEventually(equal(r(x: 1000, y: 50,  w: 500,  h: 500)))
-                    expect(d.frame).toEventually(equal(r(x: 1500, y: 50,  w: 500,  h: 500)))
+                    expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 1000, y: 550, w: 1000, h: 500)))
+                    expect(c.frame).to(equal(r(x: 1000, y: 50,  w: 500,  h: 500)))
+                    expect(d.frame).to(equal(r(x: 1500, y: 50,  w: 500,  h: 500)))
                 }
 
                 it("correctly resizes when a container is moved") {
-                    // Note: in this case, `child` will end up having only one child window (b).
-                    grandchild.reparent(tree.root, at: .end)
-                    tree.refresh()
-
-                    expect(a.frame).toEventually(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
-                    expect(b.frame).toEventually(equal(r(x: 667,  y: 50,  w: 667, h: 1000)))
-                    expect(c.frame).toEventually(equal(r(x: 1333, y: 50,  w: 334, h: 1000)))
-                    expect(d.frame).toEventually(equal(r(x: 1667, y: 50,  w: 334, h: 1000)))
+                    return firstly { () -> Promise<()> in
+                        // Note: in this case, `child` will end up having only one child window (b).
+                        grandchild.reparent(tree.root, at: .end)
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 667, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 667,  y: 50,  w: 667, h: 1000)))
+                        expect(c.frame).to(equal(r(x: 1333, y: 50,  w: 334, h: 1000)))
+                        expect(d.frame).to(equal(r(x: 1667, y: 50,  w: 334, h: 1000)))
+                    }
                 }
             }
 
