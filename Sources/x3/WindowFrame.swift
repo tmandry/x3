@@ -35,6 +35,7 @@ class WindowFrame: NSObject, NSWindowDelegate {
 
         border = Border(frame: win.frame, spec: spec)
         win.contentView = border
+        selectionStatus = .unselected
 
         super.init()
 
@@ -61,6 +62,16 @@ class WindowFrame: NSObject, NSWindowDelegate {
     var frame: CGRect {
         get { win.frame }
         set { win.setFrame(newValue, display: true) }
+    }
+
+    var selectionStatus: SelectionStatus {
+        didSet {
+            switch selectionStatus {
+                case .selectedGlobally: border.edgeColor = NSColor.blue
+                case .selectedLocally: border.edgeColor = NSColor.lightGray
+                case .unselected: border.edgeColor = NSColor.gray
+            }
+        }
     }
 
     var contentRect: CGRect {
@@ -99,6 +110,12 @@ class WindowFrame: NSObject, NSWindowDelegate {
     }
 }
 
+enum SelectionStatus {
+    case selectedGlobally
+    case selectedLocally
+    case unselected
+}
+
 struct WindowFrameSpec {
     private var headerHeight_: CGFloat
 
@@ -108,7 +125,7 @@ struct WindowFrameSpec {
     var headerHeight: CGFloat { header ? headerHeight_ : 0 }
 
     init(header withHeader: Bool) {
-        thickness = 2
+        thickness = 1
         headerHeight_ = 20
         header = withHeader
         radius = 27 + thickness
@@ -161,8 +178,15 @@ class Border: NSView {
         set { text.stringValue = newValue }
     }
 
+    var edgeColor: NSColor {
+        didSet {
+            display()
+        }
+    }
+
     init(frame: NSRect, spec: WindowFrameSpec) {
         self.spec = spec
+        self.edgeColor = NSColor.lightGray
         text = NSTextField(labelWithString: "")
         text.alignment = .center
         super.init(frame: frame)
@@ -218,7 +242,7 @@ class Border: NSView {
             text.isHidden = true
         }
 
-        NSColor.lightGray.setStroke()
+        edgeColor.setStroke()
         do {
             let rect = wholeRect
             let path = NSBezierPath()
@@ -245,7 +269,6 @@ class Border: NSView {
             path.lineWidth = thickness
             path.stroke()
         }
-
 
         //let border = NSBezierPath(roundedRect: rect, xRadius: thickness, yRadius: thickness)
         //border.lineWidth = thickness

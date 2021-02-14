@@ -241,7 +241,9 @@ public class WindowManager {
         }
         focus = next
 
-        next.node.base.selectGlobally()
+        tree.with { _ in
+            next.node.base.selectGlobally()
+        }
         raiseFocus()
     }
 
@@ -282,7 +284,9 @@ public class WindowManager {
         guard let window = window else { return }
         guard let node = tree.peek().find(window: window) else { return }
         focus = Crawler(at: node)
-        node.selectGlobally()
+        tree.with { _ in
+            node.selectGlobally()
+        }
     }
 
     private func raiseFocus() {

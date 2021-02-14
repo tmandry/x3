@@ -23,7 +23,7 @@ class Tree {
     }
 
     func refresh() {
-        root.delegate.refresh_(screen.applicationFrame)
+        root.delegate.refresh_(screen.applicationFrame, .selectedGlobally)
     }
 }
 
@@ -116,15 +116,15 @@ extension Node {
     func find(window: Swindler.Window) -> WindowNode? {
         delegate.find_(window)
     }
-    fileprivate func refresh(rect: CGRect) {
-        delegate.refresh_(rect)
+    fileprivate func refresh(rect: CGRect, selection: SelectionStatus) {
+        delegate.refresh_(rect, selection)
     }
 }
 
 fileprivate protocol NodeDelegate: class {
     func getKind() -> NodeKind
     func find_(_: Swindler.Window) -> WindowNode?
-    func refresh_(_: CGRect)
+    func refresh_(_: CGRect, _: SelectionStatus)
 }
 
 enum NodeKind {
@@ -166,8 +166,8 @@ extension NodeKind {
     func find(window: Swindler.Window) -> WindowNode? {
         self.base.find(window: window)
     }
-    fileprivate func refresh(rect: CGRect) {
-        self.base.refresh(rect: rect)
+    fileprivate func refresh(rect: CGRect, selection: SelectionStatus) {
+        self.base.refresh(rect: rect, selection: selection)
     }
 }
 
@@ -421,16 +421,17 @@ extension ContainerNode {
         assert(children.reduce(0.0){$0 + $1.base.size}.distance(to: 1.0) < 0.01)
     }
 
-    func refresh_(_ outer: CGRect) {
+    func refresh_(_ outer: CGRect, _ selection: SelectionStatus) {
         let inner = self.frame?.spec.insetEdges.apply(to: outer) ?? outer
         self.frame?.title = String(describing: self)
         self.frame?.frame = outer
+        self.frame?.selectionStatus = selection
 
         var start: Float = 0.0
         for child in children {
             let end = start + child.base.size
             let slice = rectForSlice(whole: inner, start, end)
-            child.refresh(rect: slice)
+            child.refresh(rect: slice, selection: child.base.selectionStatus(parent: selection))
             start = end
         }
     }
@@ -458,10 +459,12 @@ extension ContainerNode {
     }
 }
 extension WindowNode {
-    func refresh_(_ outer: CGRect) {
+    func refresh_(_ outer: CGRect, _ selection: SelectionStatus) {
         // print("RESIZING window to \(rect.rounded()) (\(rect)")
         self.frame?.frame = outer
-        let inner = self.frame?.spec.insetEdges.apply(to: outer) ?? outer
+        self.frame?.selectionStatus = selection
+        let insetEdges = self.frame?.spec.insetEdges
+        let inner = insetEdges?.apply(to: outer) ?? outer
         window.frame.value = inner.rounded()
     }
 }
@@ -539,6 +542,18 @@ extension Node {
         while let parent = node.parent {
             node.selectLocally()
             node = parent
+        }
+    }
+
+    func selectionStatus(parent: SelectionStatus) -> SelectionStatus {
+        if isSelected {
+            if case .selectedGlobally = parent {
+                return .selectedGlobally
+            } else {
+                return .selectedLocally
+            }
+        } else {
+            return .unselected
         }
     }
 }
