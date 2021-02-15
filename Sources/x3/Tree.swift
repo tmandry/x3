@@ -9,6 +9,17 @@ enum Layout {
     case tabbed
 }
 
+extension Layout {
+    var isProportional: Bool {
+        switch self {
+            case .horizontal: return true
+            case .vertical: return true
+            case .stacked: return false
+            case .tabbed: return false
+        }
+    }
+}
+
 class Tree {
     fileprivate(set) var root: ContainerNode
     let screen: Swindler.Screen
@@ -17,6 +28,7 @@ class Tree {
         self.root = ContainerNode(.horizontal, parent: nil)
         self.screen = screen
         self.root.tree = self
+        self.root.size = 1.0
     }
 
     func find(window: Swindler.Window) -> WindowNode? {
@@ -458,6 +470,64 @@ private extension CGRect {
         return CGRect(x: self.minX.rounded(), y: self.minY.rounded(),
                       width: self.width.rounded(), height: self.height.rounded())
     }
+}
+
+extension NodeKind {
+    @discardableResult
+    public func resize(byScreenPercentage screenPct: Float, inDirection direction: Direction)
+    -> Bool {
+        var resizingNode = self
+        while !canResize(direction, from: resizingNode) {
+            guard let parent = resizingNode.parent else {
+                return false
+            }
+            resizingNode = parent.kind
+        }
+        let parent = resizingNode.parent!
+
+        let sibling = parent.children[
+            parent.children.firstIndex(of: resizingNode)! + direction.value
+        ]
+
+        // Calculate the "exchange rate" betwen our parent node's size ratios
+        // and the overall screen ratio.
+        //
+        // To do this we want to look at each ancestor node wrt its parent; if
+        // it is in a container splitting sizes the same way we're resizing,
+        // factor its relative size into the overall ratio.
+        var exchangeRate = 1.0
+        var ancestor = Optional(parent)
+        while let cur = ancestor {
+            if let curParent = cur.parent,
+                curParent.layout.orientation == direction.orientation &&
+                curParent.layout.isProportional
+            {
+                exchangeRate *= Double(cur.size)
+            }
+            ancestor = cur.parent
+        }
+        let amountToTake = screenPct / Float(exchangeRate)
+
+        if sibling.base.size <= amountToTake {
+            return false
+        }
+
+        sibling.base.size -= amountToTake
+        resizingNode.base.size += amountToTake
+        return true
+    }
+}
+
+private func canResize(_ direction: Direction, from child: NodeKind) -> Bool {
+    // This is the same predicate as whether we can move a cursor in the desired
+    // direction, except we also need the parent layout to be proportional.
+    guard let parent = child.parent else {
+        return false
+    }
+    if !parent.layout.isProportional {
+        return false
+    }
+    return canMove(direction, from: child, nil)
 }
 
 // - MARK: Selection

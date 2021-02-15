@@ -125,7 +125,7 @@ fileprivate func moveOne(_ node: NodeKind, _ direction: Direction, cursor: Bool)
 
     // Walk up the tree until we're able to move in the right direction (or hit the end).
     let movingNode = cursor ? nil : node
-    while container != nil && !canMove(direction, in: container!, from: child, movingNode) {
+    while container != nil && !canMove(direction, from: child, movingNode) {
         child     = NodeKind.container(container!)
         container = container!.parent
     }
@@ -140,9 +140,12 @@ fileprivate func moveOne(_ node: NodeKind, _ direction: Direction, cursor: Bool)
 }
 
 /// Checks whether we can move within `container` along direction `d` from `child`.
-fileprivate func canMove(
-    _ d: Direction, in container: ContainerNode, from child: NodeKind, _ movingNode: NodeKind?
+func canMove(
+    _ d: Direction, from child: NodeKind, _ movingNode: NodeKind?
 ) -> Bool {
+    guard let container = child.parent else {
+        return false
+    }
     if container.layout.orientation != d.orientation {
         return false
     }

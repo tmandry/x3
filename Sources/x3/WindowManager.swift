@@ -40,6 +40,8 @@ class ContainerNodeWmData {
     var unstackLayout: Layout?
 }
 
+let resizeAmt: Float = 0.05
+
 /// Defines the basic window management operations and their behavior.
 public class WindowManager {
     var state: Swindler.State
@@ -113,6 +115,31 @@ public class WindowManager {
         }
         hotKeys.register(keyCode: kVK_ANSI_K, modifierKeys: optionKey | shiftKey) {
             self.moveFocusedNode(.up)
+        }
+
+        hotKeys.register(keyCode: kVK_RightArrow, modifierKeys: optionKey) {
+            self.resize(to: .right, screenPct: resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_LeftArrow, modifierKeys: optionKey) {
+            self.resize(to: .left, screenPct: resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_DownArrow, modifierKeys: optionKey) {
+            self.resize(to: .down, screenPct: resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_UpArrow, modifierKeys: optionKey) {
+            self.resize(to: .up, screenPct: resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_RightArrow, modifierKeys: optionKey | shiftKey) {
+            self.resize(to: .right, screenPct: -resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_LeftArrow, modifierKeys: optionKey | shiftKey) {
+            self.resize(to: .left, screenPct: -resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_DownArrow, modifierKeys: optionKey | shiftKey) {
+            self.resize(to: .down, screenPct: -resizeAmt)
+        }
+        hotKeys.register(keyCode: kVK_UpArrow, modifierKeys: optionKey | shiftKey) {
+            self.resize(to: .up, screenPct: -resizeAmt)
         }
 
         hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey | shiftKey) {
@@ -223,6 +250,15 @@ public class WindowManager {
         }
         tree.with { tree in
             node.move(inDirection: direction)
+        }
+    }
+
+    func resize(to direction: Direction, screenPct: Float) {
+        guard let node = focus?.node else {
+            return
+        }
+        tree.with { tree in
+            node.resize(byScreenPercentage: screenPct, inDirection: direction)
         }
     }
 

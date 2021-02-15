@@ -249,6 +249,168 @@ class TreeSpec: QuickSpec {
                 }
             }
 
+            describe("resize") {
+                var child, grandchild: ContainerNode!
+                var aNode, bNode, cNode, dNode, eNode: WindowNode!
+                beforeEach {
+                    root.makeWindow(a.window, at: .end) { aNode = $0 }
+                        .makeContainer(layout: .vertical, at: .end) { n in
+                            child = n
+                            n.makeWindow(b.window, at: .end) { bNode = $0 }
+                             .makeWindow(c.window, at: .end) { cNode = $0 }
+                             .makeContainer(layout: .horizontal, at: .end) { n in
+                                 grandchild = n
+                                 n.makeWindow(d.window, at: .end) { dNode = $0 }
+                                  .makeWindow(e.window, at: .end) { eNode = $0 }
+                             }
+                        }
+
+                    waitUntil { done in
+                        tree.awaitRefresh().done {
+                            expectStartingPoint()
+                            done()
+                        }.cauterize()
+                    }
+                }
+
+                func expectStartingPoint() {
+                    expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 1000, y: 717, w: 1000, h:  333)))
+                    expect(c.frame).to(equal(r(x: 1000, y: 383, w: 1000, h:  333)))
+                    expect(d.frame).to(equal(r(x: 1000, y: 50,  w:  500, h:  333)))
+                    expect(e.frame).to(equal(r(x: 1500, y: 50,  w:  500, h:  333)))
+                }
+
+                it("works for growing and shrinking") { () -> Promise<()> in
+                    return firstly { () -> Promise<()> in
+                        expect(aNode.kind.resize(byScreenPercentage: 0.01, inDirection: .right)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1020, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 1020, y: 717, w:  980, h:  333)))
+                        expect(c.frame).to(equal(r(x: 1020, y: 383, w:  980, h:  333)))
+                        expect(d.frame).to(equal(r(x: 1020, y: 50,  w:  490, h:  333)))
+                        expect(e.frame).to(equal(r(x: 1510, y: 50,  w:  490, h:  333)))
+                    }.then { () -> Promise<()> in
+                        expect(aNode.kind.resize(byScreenPercentage: -0.01, inDirection: .right)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expectStartingPoint()
+                    }
+                }
+
+                it("works for container node") {
+                    return firstly { () -> Promise<()> in
+                        expect(child.kind.resize(byScreenPercentage: 0.01, inDirection: .left)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x:    0, y: 50,  w:  980, h: 1000)))
+                        expect(b.frame).to(equal(r(x:  980, y: 717, w: 1020, h:  333)))
+                        expect(c.frame).to(equal(r(x:  980, y: 383, w: 1020, h:  333)))
+                        expect(d.frame).to(equal(r(x:  980, y: 50,  w:  510, h:  333)))
+                        expect(e.frame).to(equal(r(x: 1490, y: 50,  w:  510, h:  333)))
+                    }
+                }
+
+                it("does nothing when no ancestors are oriented in the requested direction") {
+                    return firstly { () -> Promise<()> in
+                        expect(aNode.kind.resize(byScreenPercentage: 0.01, inDirection: .down)) == false
+                        return tree.awaitRefresh()
+                    }.done {
+                        expectStartingPoint()
+                    }
+                }
+
+                it("does nothing when running into the edge of the screen") {
+                    return firstly { () -> Promise<()> in
+                        expect(aNode.kind.resize(byScreenPercentage: 0.01, inDirection: .left)) == false
+                        return tree.awaitRefresh()
+                    }.done {
+                        expectStartingPoint()
+                    }
+                }
+
+                it("works for nested middle node") {
+                    return firstly { () -> Promise<()> in
+                        expect(cNode.kind.resize(byScreenPercentage: 0.01, inDirection: .up)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 1000, y: 727, w: 1000, h:  323)))
+                        expect(c.frame).to(equal(r(x: 1000, y: 383, w: 1000, h:  343)))
+                        expect(d.frame).to(equal(r(x: 1000, y: 50,  w:  500, h:  333)))
+                        expect(e.frame).to(equal(r(x: 1500, y: 50,  w:  500, h:  333)))
+                    }.then { () -> Promise<()> in
+                        expect(cNode.kind.resize(byScreenPercentage: 0.01, inDirection: .down)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 1000, y: 727, w: 1000, h:  323)))
+                        expect(c.frame).to(equal(r(x: 1000, y: 373, w: 1000, h:  353)))
+                        expect(d.frame).to(equal(r(x: 1000, y: 50,  w:  500, h:  323)))
+                        expect(e.frame).to(equal(r(x: 1500, y: 50,  w:  500, h:  323)))
+                    }
+                }
+
+                it("works for node whose immediate parent is not oriented in the requested direction") {
+                    return firstly { () -> Promise<()> in
+                        expect(dNode.kind.resize(byScreenPercentage: 0.01, inDirection: .up)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 1000, y: 717, w: 1000, h:  333)))
+                        expect(c.frame).to(equal(r(x: 1000, y: 393, w: 1000, h:  323)))
+                        expect(d.frame).to(equal(r(x: 1000, y: 50,  w:  500, h:  343)))
+                        expect(e.frame).to(equal(r(x: 1500, y: 50,  w:  500, h:  343)))
+                    }
+                }
+
+                it("picks an ancestor which has room for resizing") {
+                    return firstly { () -> Promise<()> in
+                        expect(dNode.kind.resize(byScreenPercentage: 0.01, inDirection: .left)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x:    0, y: 50,  w:  980, h: 1000)))
+                        expect(b.frame).to(equal(r(x:  980, y: 717, w: 1020, h:  333)))
+                        expect(c.frame).to(equal(r(x:  980, y: 383, w: 1020, h:  333)))
+                        expect(d.frame).to(equal(r(x:  980, y: 50,  w:  510, h:  333)))
+                        expect(e.frame).to(equal(r(x: 1490, y: 50,  w:  510, h:  333)))
+                    }
+                }
+
+                it("behaves correctly with tabbed and stacked nodes") {
+                    return firstly { () -> Promise<()> in
+                        grandchild.layout = .tabbed
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x: 0,    y: 50,  w: 1000, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 1000, y: 717, w: 1000, h:  333)))
+                        expect(c.frame).to(equal(r(x: 1000, y: 383, w: 1000, h:  333)))
+                        expect(d.frame).to(equal(r(x: 1000, y: 50,  w: 1000, h:  333)))
+                        expect(e.frame).to(equal(r(x: 1000, y: 50,  w: 1000, h:  333)))
+                    }.then { () -> Promise<()> in
+                        expect(dNode.kind.resize(byScreenPercentage: 0.01, inDirection: .right)) == false
+                        expect(dNode.kind.resize(byScreenPercentage: 0.01, inDirection: .left)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x:   0, y: 50,  w:  980, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 980, y: 717, w: 1020, h:  333)))
+                        expect(c.frame).to(equal(r(x: 980, y: 383, w: 1020, h:  333)))
+                        expect(d.frame).to(equal(r(x: 980, y: 50,  w: 1020, h:  333)))
+                        expect(e.frame).to(equal(r(x: 980, y: 50,  w: 1020, h:  333)))
+                    }.then { () -> Promise<()> in
+                        expect(dNode.kind.resize(byScreenPercentage: 0.01, inDirection: .up)) == true
+                        return tree.awaitRefresh()
+                    }.done {
+                        expect(a.frame).to(equal(r(x:   0, y: 50,  w:  980, h: 1000)))
+                        expect(b.frame).to(equal(r(x: 980, y: 717, w: 1020, h:  333)))
+                        expect(c.frame).to(equal(r(x: 980, y: 393, w: 1020, h:  323)))
+                        expect(d.frame).to(equal(r(x: 980, y: 50,  w: 1020, h:  343)))
+                        expect(e.frame).to(equal(r(x: 980, y: 50,  w: 1020, h:  343)))
+                    }
+                }
+            }
+
             describe("Selection") {
                 var child, grandchild: ContainerNode!
                 var aNode, bNode, cNode, dNode, eNode: WindowNode!
