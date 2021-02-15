@@ -508,7 +508,8 @@ extension NodeKind {
         }
         let amountToTake = screenPct / Float(exchangeRate)
 
-        if sibling.base.size <= amountToTake {
+        // Only one of these can be false, depending on the sign of amountToTake.
+        if sibling.base.size <= amountToTake || resizingNode.base.size <= -amountToTake {
             return false
         }
 

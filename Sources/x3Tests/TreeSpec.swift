@@ -264,6 +264,7 @@ class TreeSpec: QuickSpec {
                                   .makeWindow(e.window, at: .end) { eNode = $0 }
                              }
                         }
+                    _ = (aNode, bNode, cNode, dNode, eNode)
 
                     waitUntil { done in
                         tree.awaitRefresh().done {
@@ -324,6 +325,20 @@ class TreeSpec: QuickSpec {
                 it("does nothing when running into the edge of the screen") {
                     return firstly { () -> Promise<()> in
                         expect(aNode.kind.resize(byScreenPercentage: 0.01, inDirection: .left)) == false
+                        return tree.awaitRefresh()
+                    }.done {
+                        expectStartingPoint()
+                    }
+                }
+
+                it("does nothing when it can't satisfy the requested size") {
+                    return firstly { () -> Promise<()> in
+                        expect(cNode.kind.resize(byScreenPercentage:  0.50, inDirection: .up)) == false
+                        return tree.awaitRefresh()
+                    }.done {
+                        expectStartingPoint()
+                    }.then { () -> Promise<()> in
+                        expect(cNode.kind.resize(byScreenPercentage: -0.50, inDirection: .up)) == false
                         return tree.awaitRefresh()
                     }.done {
                         expectStartingPoint()
