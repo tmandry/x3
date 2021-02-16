@@ -128,6 +128,7 @@ struct WindowFrameSpec {
         thickness = 1
         headerHeight_ = 20
         header = withHeader
+        // macOS 10.15(.7) uses 13 + thickness
         radius = 27 + thickness
     }
 
