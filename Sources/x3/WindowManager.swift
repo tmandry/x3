@@ -117,28 +117,28 @@ public class WindowManager {
             self.moveFocusedNode(.up)
         }
 
-        hotKeys.register(keyCode: kVK_RightArrow, modifierKeys: optionKey) {
+        hotKeys.register(keyCode: kVK_RightArrow, modifierKeys: optionKey | cmdKey) {
             self.resize(to: .right, screenPct: resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_LeftArrow, modifierKeys: optionKey) {
+        hotKeys.register(keyCode: kVK_LeftArrow, modifierKeys: optionKey | cmdKey) {
             self.resize(to: .left, screenPct: resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_DownArrow, modifierKeys: optionKey) {
+        hotKeys.register(keyCode: kVK_DownArrow, modifierKeys: optionKey | cmdKey) {
             self.resize(to: .down, screenPct: resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_UpArrow, modifierKeys: optionKey) {
+        hotKeys.register(keyCode: kVK_UpArrow, modifierKeys: optionKey | cmdKey) {
             self.resize(to: .up, screenPct: resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_RightArrow, modifierKeys: optionKey | shiftKey) {
+        hotKeys.register(keyCode: kVK_RightArrow, modifierKeys: optionKey | cmdKey | shiftKey) {
             self.resize(to: .right, screenPct: -resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_LeftArrow, modifierKeys: optionKey | shiftKey) {
+        hotKeys.register(keyCode: kVK_LeftArrow, modifierKeys: optionKey | cmdKey | shiftKey) {
             self.resize(to: .left, screenPct: -resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_DownArrow, modifierKeys: optionKey | shiftKey) {
+        hotKeys.register(keyCode: kVK_DownArrow, modifierKeys: optionKey | cmdKey | shiftKey) {
             self.resize(to: .down, screenPct: -resizeAmt)
         }
-        hotKeys.register(keyCode: kVK_UpArrow, modifierKeys: optionKey | shiftKey) {
+        hotKeys.register(keyCode: kVK_UpArrow, modifierKeys: optionKey | cmdKey | shiftKey) {
             self.resize(to: .up, screenPct: -resizeAmt)
         }
 
