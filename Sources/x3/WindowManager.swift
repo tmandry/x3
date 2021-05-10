@@ -5,6 +5,14 @@ import Swindler
 public var X3_LOGGER: Logger!
 var log: Logger { X3_LOGGER }
 
+struct SpaceState {
+    var tree: TreeWrapper
+    var focus: Crawler?
+    init(_ tree: Tree) {
+        self.tree = TreeWrapper(tree)
+    }
+}
+
 struct TreeWrapper {
     private var tree: Tree
 
@@ -53,8 +61,19 @@ public final class WindowManager: Encodable, Decodable {
     var state: Swindler.State!
     public var reload: Optional<(WindowManager) -> ()> = nil
 
-    var tree: TreeWrapper!
-    var focus: Crawler?
+    var spaces: [Int: SpaceState] = [:]
+
+    var focus: Crawler? {
+        get {
+            spaces[state.space]!.focus
+        }
+        set {
+            spaces[state.space]!.focus = newValue
+        }
+    }
+    var tree: TreeWrapper {
+        spaces[state.space]!.tree
+    }
 
     var addNewWindows: Bool = false
 
@@ -83,7 +102,7 @@ public final class WindowManager: Encodable, Decodable {
         let treeData = try container.decode(Data.self, forKey: .tree)
         log.debug("recovery data: \(String(decoding: treeData, as: UTF8.self))")
         let treeDecoder = JSONDecoder()
-        tree = TreeWrapper(try Tree.inflate(
+        spaces[state.space] = SpaceState(try Tree.inflate(
             from: treeDecoder, data: treeData, screen: state.screens.last!, state: state))
         setup()
         // Restore the focus state.
@@ -107,11 +126,24 @@ public final class WindowManager: Encodable, Decodable {
 
     public init(state: Swindler.State) {
         self.state = state
-        self.tree = TreeWrapper(Tree(screen: state.screens.last!))
+        self.spaces[state.space] = SpaceState(Tree(screen: state.screens.last!))
         setup()
     }
 
     private func setup() {
+        self.addNewWindows = false
+
+        func initSpace(id: Int) {
+            if !self.spaces.keys.contains(id) {
+                self.spaces[id] = SpaceState(Tree(screen: state.screens.last!))
+            }
+        }
+
+        initSpace(id: state.space)
+        state.on { (event: SpaceChangedEvent) in
+            initSpace(id: event.id)
+        }
+
         state.on { (event: WindowCreatedEvent) in
             if self.addNewWindows {
                 self.addWindow(event.window)
