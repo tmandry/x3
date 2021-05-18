@@ -89,6 +89,7 @@ class WindowManagerSpec: QuickSpec {
                 wm.addWindow(c.window)
                 wm.focusParent()
                 wm.moveFocusedNode(.left)
+                // TODO: this next line flaked: expected to eventually equal <(1000.0, 50.0, 1000.0, 1000.0)>, got <(0.0, 50.0, 1000.0, 1000.0)>
                 expect(a.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h: 1000)))
                 expect(b.frame).toEventually(equal(r(x:    0, y: 550, w: 1000, h:  500)))
                 expect(c.frame).toEventually(equal(r(x:    0, y:  50, w: 1000, h:  500)))
@@ -164,7 +165,7 @@ class WindowManagerSpec: QuickSpec {
                     }
 
                     context("when used on a vertical layout") {
-                        it("converts to a \(to) and unstacks back to horizontal") {
+                        it("converts to a \(to) and unstacks back to vertical") {
                             wm.split(.vertical)
                             wm.addWindow(a.window)
                             wm.addWindow(b.window)
@@ -180,6 +181,24 @@ class WindowManagerSpec: QuickSpec {
 
                 testStack(to: .stacked)
                 testStack(to: .tabbed)
+            }
+
+            describe("recovery") {
+                it("works") {
+                    wm.addWindow(a.window)
+                    wm.addWindow(b.window)
+                    expect(fakeApp.mainWindow).toEventually(equal(b))
+                    wm.split(.vertical)
+                    wm.addWindow(c.window)
+
+                    expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
+
+                    let data = try! wm.serialize()
+                    wm = try! WindowManager.recover(from: data, state: swindlerState.state)
+                    wm.moveFocus(.up)
+
+                    expect(fakeApp.mainWindow).toEventually(equal(b))
+                }
             }
         }
     }
