@@ -8,6 +8,7 @@ private func r(x: Int, y: Int, w: Int, h: Int) -> CGRect {
     return CGRect(x: x, y: y, width: w, height: h)
 }
 
+
 class WindowManagerSpec: QuickSpec {
     override func spec() {
         var swindlerState: FakeState!
@@ -126,6 +127,7 @@ class WindowManagerSpec: QuickSpec {
                     wm.focusParent()
                     wm.split(.vertical)
                     wm.addWindow(c.window)
+                    // TODO: this line flaked (split mode): expected to eventually equal <(0.0, 550.0, 1000.0, 500.0)>, got <(0.0, 50.0, 1000.0, 1000.0)>
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 550, w: 1000, h:  500)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
                     expect(c.frame).toEventually(equal(r(x: 0,    y:  50, w: 2000, h:  500)))

@@ -20,7 +20,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(path: "./Swindler"),
         .package(url: "https://github.com/mxcl/PromiseKit", from: "6.13.3"),
-        .package(url: "https://github.com/Quick/Quick.git", from: "1.3.0"),
+        .package(url: "https://github.com/Quick/Quick.git", from: "4.0.0"),
         .package(url: "https://github.com/Quick/Nimble.git", from: "7.3.1"),
     ],
     targets: [
