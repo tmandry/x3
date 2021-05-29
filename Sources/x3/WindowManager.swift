@@ -47,6 +47,7 @@ let STATE = CodingUserInfoKey(rawValue: "state")!
 /// Defines the basic window management operations and their behavior.
 public final class WindowManager: Encodable, Decodable {
     var state: Swindler.State!
+    public var reload: Optional<(WindowManager) -> ()> = nil
 
     var tree: TreeWrapper!
     var focus: Crawler?
@@ -69,6 +70,7 @@ public final class WindowManager: Encodable, Decodable {
 
     private init() {}
 
+    /// Don't use – use recover instead.
     public convenience init(from decoder: Decoder) throws {
         self.init()
         state = (decoder.userInfo[STATE]! as! Swindler.State)
@@ -187,6 +189,9 @@ public final class WindowManager: Encodable, Decodable {
 
         hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey | shiftKey) {
             print(self.tree.peek().root)
+        }
+        hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey | shiftKey) {
+            self.reload?(self)
         }
 
         hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey) {
