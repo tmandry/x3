@@ -2,11 +2,11 @@
 //  AppDelegate.swift
 //  x3
 //
-//  Created by Tyler Mandry on 10/21/17.
 //  Copyright © 2017 Tyler Mandry. All rights reserved.
 //
 
 import Cocoa
+import Logging
 import AXSwift
 import Swindler
 import x3
@@ -15,9 +15,9 @@ let RECOVER = "--recover"
 let OK_LINE = "recover ok"
 
 func recover(_ state: Swindler.State) throws -> WindowManager {
-    print("recover: reading")
+    log.info("recover: reading")
     let data = FileHandle.standardInput.readDataToEndOfFile()
-    print("recover: got data: \(data)")
+    log.info("recover: got data: \(data)")
     let manager = try WindowManager.recover(from: data, state: state)
     print(OK_LINE)
     fflush(stdout)
@@ -30,8 +30,8 @@ func reload(_ wm: WindowManager) {
         let thread = Thread {
             do {
                 let data = try wm.serialize()
-                print("Reloading with payload:")
-                print(String(decoding: data, as: UTF8.self))
+                log.info("Reloading")
+                log.debug("payload: \(String(decoding: data, as: UTF8.self))")
 
                 let program = CommandLine.arguments[0]
                 let task = Process()
@@ -44,7 +44,6 @@ func reload(_ wm: WindowManager) {
                 task.standardError = errorPipe
                 if #available(macOS 10.13, *) {
                     task.executableURL = URL(fileURLWithPath: program)
-                    print("Launching: \(task)")
                     try task.run()
                 } else {
                     task.launchPath = program
@@ -58,39 +57,42 @@ func reload(_ wm: WindowManager) {
                 try DispatchQueue.global().sync {
                     outputData = try statusPipe.fileHandleForReading.readToEnd()
                 }
-                print("output: \(outputData)")
                 guard let outputData = outputData else {
-                    print("Reloading not successful: stdout not available. Resuming.")
-                    print("stderr:")
+                    log.error("Reloading not successful: stdout not available. Resuming.")
+                    log.debug("stderr:")
                     task.terminate()
                     if let stderr = try errorPipe.fileHandleForReading.readToEnd() {
-                        print(String(decoding: stderr, as: UTF8.self))
+                        log.debug("\(String(decoding: stderr, as: UTF8.self))")
                     } else {
-                        print("(not available)")
+                        log.debug("(not available)")
                     }
                     return
                 }
                 let output = String(decoding: outputData, as: UTF8.self)
 
                 if !output.components(separatedBy: "\n").contains(OK_LINE) {
-                    print("Reloading not successful: could not find the line `\(OK_LINE)`. Resuming.")
-                    print("Output:")
-                    print(output)
-                    print("Error:")
-                    print(String(decoding: errorPipe.fileHandleForReading.availableData, as: UTF8.self))
+                    log.error("Reloading not successful: could not find the line `\(OK_LINE)`. Resuming.")
+                    log.debug("Output:")
+                    log.debug("\(output)")
+                    log.debug("Error:")
+                    log.debug("""
+                        \(String(decoding: errorPipe.fileHandleForReading.availableData, as: UTF8.self))
+                    """)
                     task.terminate()
                     return
                 }
                 if !task.isRunning {
-                    print("Reloading not successful: Got `\(OK_LINE)` but process has exited with code " +
-                        "\(task.terminationStatus). Resuming.")
+                    log.error("""
+                        Reloading not successful: Got `\(OK_LINE)` but process has exited with code \
+                        \(task.terminationStatus). Resuming.
+                    """)
                     return
                 }
 
-                print("Reload successful. Terminating.")
+                log.info("Reload successful. Terminating.")
                 exit(0)
             } catch {
-                print("Reloading not successful: error: \(error). Resuming.")
+                log.error("Reloading not successful: error: \(error). Resuming.")
             }
         }
         thread.start()
@@ -105,6 +107,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationDidFinishLaunching(_ aNotification: Notification) {
         guard AXSwift.checkIsProcessTrusted(prompt: true) else {
+            log.error("Not trusted as an AX process; please authorize and re-launch")
             print("Not trusted as an AX process; please authorize and re-launch")
             NSApp.terminate(self)
             return
@@ -113,7 +116,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeys = HotKeyManager()
 
         Swindler.initialize().done { state in
-            print("done with init. args: \(CommandLine.arguments)")
+            log.debug("done with init. args: \(CommandLine.arguments)")
             if CommandLine.arguments.contains(RECOVER) {
                 self.manager = try recover(state)
             } else {
@@ -122,6 +125,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             self.manager.reload = reload
             self.manager.registerHotKeys(self.hotkeys)
         }.catch { error in
+            log.critical("Swindler failed to initialize: \(error)")
             fatalError("Swindler failed to initialize: \(error)")
         }
     }

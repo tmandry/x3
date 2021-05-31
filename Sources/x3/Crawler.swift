@@ -243,8 +243,9 @@ extension NodeKind {
                 // We only reach here if we encounter an empty container along the path.
                 // Empty containers are usually culled; this is a bug.
                 // TODO make a fatalError
-                print("found empty container during move! tree: " +
-                      String(describing: self.findRoot()))
+                log.error("""
+                    found empty container during move! tree: \(String(describing: self.findRoot()))
+                """)
                 point = .begin
             }
         }

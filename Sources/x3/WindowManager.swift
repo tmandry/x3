@@ -1,5 +1,9 @@
 import Carbon
+import Logging
 import Swindler
+
+public var X3_LOGGER: Logger!
+var log: Logger { X3_LOGGER }
 
 struct TreeWrapper {
     private var tree: Tree
@@ -77,7 +81,7 @@ public final class WindowManager: Encodable, Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         addNewWindows = try container.decode(Bool.self, forKey: .addNewWindows)
         let treeData = try container.decode(Data.self, forKey: .tree)
-        print(String(decoding: treeData, as: UTF8.self))
+        log.debug("recovery data: \(String(decoding: treeData, as: UTF8.self))")
         let treeDecoder = JSONDecoder()
         tree = TreeWrapper(try Tree.inflate(
             from: treeDecoder, data: treeData, screen: state.screens.last!, state: state))
@@ -188,7 +192,7 @@ public final class WindowManager: Encodable, Decodable {
         }
 
         hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey | shiftKey) {
-            print(self.tree.peek().root)
+            log.debug("\(String(describing: self.tree.peek().root))")
         }
         hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey | shiftKey) {
             self.reload?(self)
@@ -360,7 +364,7 @@ public final class WindowManager: Encodable, Decodable {
         window.application.mainWindow.set(window).then { _ in
             return self.state.frontmostApplication.set(self.pendingFrontmostApplication!)
         }.catch { err in
-            print("Error raising window \(window): \(err)")
+            log.error("Error raising window \(window): \(String(describing: err))")
         }
     }
 
