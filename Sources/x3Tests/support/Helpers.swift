@@ -83,7 +83,7 @@ func it(_ desc: String,
         file: FileString = #file,
         line: UInt = #line,
         closure: @escaping () -> Promise<()>) {
-    it(desc, file: file.description, line: line, closure: {
+    it(desc, file: file, line: line, closure: {
         let promise = closure()
         waitUntil(timeout: timeout, file: file, line: line) { done in
             promise.done { _ in

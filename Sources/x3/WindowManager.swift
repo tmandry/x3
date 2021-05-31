@@ -1,5 +1,9 @@
 import Carbon
+import os
 import Swindler
+
+public var X3_LOGGER: Logger!
+var log: Logger { X3_LOGGER }
 
 struct TreeWrapper {
     private var tree: Tree
@@ -36,20 +40,23 @@ extension NodeKind {
     }
 }
 
-class ContainerNodeWmData {
+class ContainerNodeWmData: Codable {
     var unstackLayout: Layout?
 }
 
 let resizeAmt: Float = 0.05
 
-/// Defines the basic window management operations and their behavior.
-public class WindowManager {
-    var state: Swindler.State
+let STATE = CodingUserInfoKey(rawValue: "state")!
 
-    var tree: TreeWrapper
+/// Defines the basic window management operations and their behavior.
+public final class WindowManager: Encodable, Decodable {
+    var state: Swindler.State!
+    public var reload: Optional<(WindowManager) -> ()> = nil
+
+    var tree: TreeWrapper!
     var focus: Crawler?
 
-    var addNewWindows: Bool
+    var addNewWindows: Bool = false
 
     public var focusedWindow: Window? {
         guard let node = focus?.node else { return nil }
@@ -57,12 +64,54 @@ public class WindowManager {
         return windowNode.window
     }
 
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(addNewWindows, forKey: .addNewWindows)
+        let treeEncoder = JSONEncoder()
+        let treeData = try treeEncoder.encode(tree.peek())
+        try container.encode(treeData, forKey: .tree)
+    }
+
+    private init() {}
+
+    /// Don't use – use recover instead.
+    public convenience init(from decoder: Decoder) throws {
+        self.init()
+        state = (decoder.userInfo[STATE]! as! Swindler.State)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        addNewWindows = try container.decode(Bool.self, forKey: .addNewWindows)
+        let treeData = try container.decode(Data.self, forKey: .tree)
+        log.debug("recovery data: \(String(decoding: treeData, as: UTF8.self))")
+        let treeDecoder = JSONDecoder()
+        tree = TreeWrapper(try Tree.inflate(
+            from: treeDecoder, data: treeData, screen: state.screens.last!, state: state))
+        setup()
+        // Restore the focus state.
+        onFocusedWindowChanged(window: state.focusedWindow)
+    }
+
+    enum CodingKeys: CodingKey {
+        case addNewWindows, tree
+    }
+
+    public static func recover(from data: Data, state: Swindler.State) throws -> WindowManager {
+        let decoder = JSONDecoder()
+        decoder.userInfo[STATE] = state
+        return try decoder.decode(WindowManager.self, from: data)
+    }
+
+    public func serialize() throws -> Data {
+        let encoder = JSONEncoder()
+        return try encoder.encode(self)
+    }
+
     public init(state: Swindler.State) {
         self.state = state
         self.tree = TreeWrapper(Tree(screen: state.screens.last!))
-        self.focus = nil
-        self.addNewWindows = false
+        setup()
+    }
 
+    private func setup() {
         state.on { (event: WindowCreatedEvent) in
             if self.addNewWindows {
                 self.addWindow(event.window)
@@ -143,7 +192,10 @@ public class WindowManager {
         }
 
         hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey | shiftKey) {
-            print(self.tree.peek().root)
+            log.debug("\(String(describing: self.tree.peek().root))")
+        }
+        hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey | shiftKey) {
+            self.reload?(self)
         }
 
         hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey) {
@@ -312,7 +364,7 @@ public class WindowManager {
         window.application.mainWindow.set(window).then { _ in
             return self.state.frontmostApplication.set(self.pendingFrontmostApplication!)
         }.catch { err in
-            print("Error raising window \(window): \(err)")
+            log.error("Error raising window \(window): \(String(describing: err))")
         }
     }
 

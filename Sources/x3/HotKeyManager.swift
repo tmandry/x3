@@ -52,7 +52,7 @@ public class HotKeyManager {
     }
 
     private func handleHotKey(eventKind: UInt32, hotKeyID: EventHotKeyID) -> OSStatus {
-        debugPrint("!!!Got event: \(eventKind) \(hotKeyID)")
+        log.debug("Got event: \(eventKind) \(String(describing: hotKeyID))")
         switch eventKind {
         case UInt32(kEventHotKeyPressed):
             handlers[Int(hotKeyID.id)]()

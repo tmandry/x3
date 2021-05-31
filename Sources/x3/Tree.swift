@@ -2,7 +2,7 @@ import Cocoa
 import Swindler
 import PromiseKit
 
-enum Layout {
+enum Layout: String, Codable {
     case horizontal
     case vertical
     case stacked
@@ -20,12 +20,39 @@ extension Layout {
     }
 }
 
-class Tree {
+let WINDOWS = CodingUserInfoKey(rawValue: "windows")!
+
+enum DeserializeError: Error {
+    case windowNotFound
+}
+
+class BoxedArray<T> {
+    var array: [T] = []
+    init(_ a: [T]) {
+        array = a
+    }
+}
+
+final class Tree {
     fileprivate(set) var root: ContainerNode
-    let screen: Swindler.Screen
+    var screen: Swindler.Screen! = nil
 
     init(screen: Swindler.Screen) {
         self.root = ContainerNode(.horizontal, parent: nil)
+        setup(screen)
+    }
+
+    public static func inflate(
+        from decoder: JSONDecoder, data: Data, screen: Swindler.Screen, state: Swindler.State
+    ) throws -> Tree {
+        // TODO: visible windows only
+        decoder.userInfo[WINDOWS] = BoxedArray(state.knownWindows)
+        let this = try decoder.decode(Tree.self, from: data)
+        this.setup(screen)
+        return this
+    }
+
+    fileprivate func setup(_ screen: Swindler.Screen) {
         self.screen = screen
         self.root.tree = self
         self.root.size = 1.0
@@ -47,16 +74,29 @@ class Tree {
     }
 }
 
-class Node {
+extension Tree: Codable {
+    enum CodingKeys: CodingKey {
+        case root
+    }
+}
+
+class Node: Codable {
     fileprivate(set) var parent: ContainerNode?
     fileprivate var size: Float32
     private weak var delegate_: NodeDelegate?
     fileprivate var delegate: NodeDelegate {
-        get { delegate_! }
+        get {
+            assert(delegate_ != nil, "nil delegate: \(self)")
+            return delegate_!
+        }
         set {
-            assert(delegate_ == nil)
+            assert(delegate_ == nil, "tried to set delegate to \(newValue) but it was already set to \(delegate_!)")
             delegate_ = newValue
         }
+    }
+
+    enum CodingKeys: CodingKey {
+        case size
     }
 
     fileprivate init(parent: ContainerNode?) {
@@ -87,6 +127,11 @@ extension Node {
         self.base.parent = newParent
         newParent.addChild(self.kind, at: point)
         oldParent.cullIfEmpty()
+    }
+
+    fileprivate func setParentAfterDeserializing(_ newParent: ContainerNode) {
+        assert(base.parent == nil)
+        base.parent = newParent
     }
 
     /// Inserts a new parent above this node with the given layout.
@@ -140,7 +185,7 @@ extension Node {
     }
 }
 
-fileprivate protocol NodeDelegate: class {
+fileprivate protocol NodeDelegate: AnyObject {
     func getKind() -> NodeKind
     func find_(_: Swindler.Window) -> WindowNode?
     func refresh_(_: CGRect, _: inout [Promise<()>]?)
@@ -213,6 +258,35 @@ extension NodeKind {
     }
 }
 
+extension NodeKind: Encodable {
+    enum CodingKeys: CodingKey {
+        case container
+        case window
+    }
+    func encode(to encoder: Encoder) throws {
+        var object = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .container(let node):
+            try object.encode(node, forKey: .container)
+        case .window(let node):
+            try object.encode(node, forKey: .window)
+        }
+    }
+}
+
+extension NodeKind: Decodable {
+    init(from decoder: Decoder) throws {
+        let object = try decoder.container(keyedBy: CodingKeys.self)
+        do {
+            let node = try object.decode(ContainerNode.self, forKey: .container)
+            self = .container(node)
+        } catch {
+            let node = try object.decode(WindowNode.self, forKey: .window)
+            self = .window(node)
+        }
+    }
+}
+
 enum InsertionPolicy {
     case begin
     case end
@@ -221,11 +295,11 @@ enum InsertionPolicy {
     case at(Int)
 }
 
-class ContainerNode: Node {
+final class ContainerNode: Node {
     var layout: Layout
     private(set) var children: [NodeKind]
-    var wmData: ContainerNodeWmData
-    fileprivate var selectionData: SelectionData
+    var wmData: ContainerNodeWmData = ContainerNodeWmData()
+    fileprivate var selectionData: SelectionData = initSelectionData()
 
     // Only the root node has a reference to the tree.
     fileprivate weak var tree: Tree?
@@ -233,10 +307,34 @@ class ContainerNode: Node {
     fileprivate init(_ type: Layout, parent: ContainerNode?) {
         layout = type
         children = []
-        wmData = ContainerNodeWmData()
-        selectionData = initSelectionData()
         super.init(parent: parent)
         super.delegate = self
+    }
+
+    private enum CodingKeys: CodingKey {
+        case layout, children, wmData, selectionData
+    }
+
+    required init(from decoder: Decoder) throws {
+        let object = try decoder.container(keyedBy: CodingKeys.self)
+        layout = try object.decode(Layout.self, forKey: .layout)
+        children = try object.decode([NodeKind].self, forKey: .children)
+        wmData = try object.decode(ContainerNodeWmData.self, forKey: .wmData)
+        selectionData = try object.decode(SelectionData.self, forKey: .selectionData)
+        try super.init(from: try object.superDecoder())
+        super.delegate = self
+        for child in children {
+            child.node.setParentAfterDeserializing(self)
+        }
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var object = encoder.container(keyedBy: CodingKeys.self)
+        try super.encode(to: object.superEncoder())
+        try object.encode(layout, forKey: .layout)
+        try object.encode(children, forKey: .children)
+        try object.encode(wmData, forKey: .wmData)
+        try object.encode(selectionData, forKey: .selectionData)
     }
 
     /// Destroys this node and all of its children and removes them from the tree.
@@ -249,13 +347,51 @@ extension ContainerNode: NodeDelegate {
     fileprivate func getKind() -> NodeKind { .container(self) }
 }
 
-class WindowNode: Node {
+final class WindowNode: Node {
     let window: Swindler.Window
 
-    fileprivate init(_ window: Swindler.Window, parent: ContainerNode) {
+    fileprivate init(_ window: Swindler.Window, parent: ContainerNode?) {
         self.window = window
         super.init(parent: parent)
         super.delegate = self
+    }
+
+    required init(from decoder: Decoder) throws {
+        let object = try decoder.container(keyedBy: CodingKeys.self)
+        let windows = decoder.userInfo[WINDOWS] as! BoxedArray<Swindler.Window>
+        window = try WindowNode.getWindow(object, windows)
+        try super.init(from: object.superDecoder())
+        super.delegate = self
+    }
+
+    private static func getWindow(
+        _ object: KeyedDecodingContainer<CodingKeys>,
+        _ windows: BoxedArray<Swindler.Window>
+    ) throws -> Swindler.Window {
+        let pid = try object.decode(pid_t.self, forKey: .pid)
+        let frame = try object.decode(CGRect.self, forKey: .frame)
+        let title = try object.decode(String.self, forKey: .title)
+        guard let index = windows.array.firstIndex(where: { window in
+            pid == window.application.processIdentifier &&
+            frame == window.frame.value &&
+            title == window.title.value
+        }) else {
+            throw DeserializeError.windowNotFound
+        }
+        let window = windows.array[index]
+        windows.array.remove(at: index)
+        return window
+    }
+
+    private enum CodingKeys: CodingKey {
+        case pid, frame, title
+    }
+    override func encode(to encoder: Encoder) throws {
+        var object = encoder.container(keyedBy: CodingKeys.self)
+        try super.encode(to: object.superEncoder())
+        try object.encode(window.application.processIdentifier, forKey: .pid)
+        try object.encode(window.frame.value, forKey: .frame)
+        try object.encode(window.title.value, forKey: .title)
     }
 
     /// Destroys this node and removes it from the parent.
@@ -456,7 +592,7 @@ extension ContainerNode {
 
 extension WindowNode {
     func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
-        // print("RESIZING window to \(rect.rounded()) (\(rect)")
+        // log.debug("RESIZING window to \(rect.rounded()) (\(rect)")
         let rect = rect.rounded()
         let promise = window.frame.set(rect)
         if promises != nil {

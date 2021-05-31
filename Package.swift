@@ -7,7 +7,7 @@ let package = Package(
     name: "x3",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v10_10),
+        .macOS(.v11),
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
@@ -20,7 +20,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(path: "./Swindler"),
         .package(url: "https://github.com/mxcl/PromiseKit", from: "6.13.3"),
-        .package(url: "https://github.com/Quick/Quick.git", from: "1.3.0"),
+        .package(url: "https://github.com/Quick/Quick.git", from: "4.0.0"),
         .package(url: "https://github.com/Quick/Nimble.git", from: "7.3.1"),
     ],
     targets: [
