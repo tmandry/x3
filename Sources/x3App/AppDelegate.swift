@@ -90,9 +90,16 @@ func reload(_ wm: WindowManager) {
                 }
 
                 log.info("Reload successful. Terminating.")
-                exit(0)
+
+                // Doing this on the main thread is a tiny bit cleaner.
+                DispatchQueue.main.sync {
+                    exit(0)
+                }
             } catch {
-                log.error("Reloading not successful: error: \(error). Resuming.")
+                log.error("""
+                    Reloading not successful: error: \
+                    \(String(describing: error), privacy: .public). Resuming.
+                """)
             }
         }
         thread.start()
@@ -125,7 +132,9 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             self.manager.reload = reload
             self.manager.registerHotKeys(self.hotkeys)
         }.catch { error in
-            log.critical("Swindler failed to initialize: \(error)")
+            log.critical("""
+                Swindler failed to initialize: \(String(describing: error), privacy: .public)
+            """)
             fatalError("Swindler failed to initialize: \(error)")
         }
     }
