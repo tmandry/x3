@@ -96,7 +96,7 @@ public final class WindowManager: Encodable, Decodable {
 
     public init(state: Swindler.State) {
         self.state = state
-        curSpace = state.space
+        curSpace = state.currentSpaceId
         spaces[curSpace] = SpaceState(Tree(screen: state.screens.last!))
         setup()
     }
@@ -111,7 +111,7 @@ public final class WindowManager: Encodable, Decodable {
 
         var spaceData = try container.decode([Data].self, forKey: .spaceData)
 
-        curSpace = state.space
+        curSpace = state.currentSpaceId
         let curSpaceData = spaceData.remove(at: 0) // first space is always the current one.
         log.debug("""
             attempting to inflate current space:\n\(String(decoding: curSpaceData, as: UTF8.self))
