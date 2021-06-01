@@ -62,17 +62,23 @@ public final class WindowManager: Encodable, Decodable {
     public var reload: Optional<(WindowManager) -> ()> = nil
 
     var spaces: [Int: SpaceState] = [:]
+    var curSpace: Int
+
+    // Since we can't see windows from other spaces when first starting, we have
+    // to recover spaces lazily, holding onto their recovery data until
+    // the user switches to the space again.
+    var pendingSpaceData: [Data] = []
 
     var focus: Crawler? {
         get {
-            spaces[state.space]!.focus
+            spaces[curSpace]!.focus
         }
         set {
-            spaces[state.space]!.focus = newValue
+            spaces[curSpace]!.focus = newValue
         }
     }
     var tree: TreeWrapper {
-        spaces[state.space]!.tree
+        spaces[curSpace]!.tree
     }
 
     var addNewWindows: Bool = false
@@ -83,34 +89,42 @@ public final class WindowManager: Encodable, Decodable {
         return windowNode.window
     }
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(addNewWindows, forKey: .addNewWindows)
-        let treeEncoder = JSONEncoder()
-        let treeData = try treeEncoder.encode(tree.peek())
-        try container.encode(treeData, forKey: .tree)
+
+    enum CodingKeys: CodingKey {
+        case addNewWindows, spaceData
+    }
+
+    public init(state: Swindler.State) {
+        self.state = state
+        curSpace = state.space
+        spaces[curSpace] = SpaceState(Tree(screen: state.screens.last!))
+        setup()
     }
 
     private init() {}
 
     /// Don't use – use recover instead.
-    public convenience init(from decoder: Decoder) throws {
-        self.init()
+    public init(from decoder: Decoder) throws {
         state = (decoder.userInfo[STATE]! as! Swindler.State)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         addNewWindows = try container.decode(Bool.self, forKey: .addNewWindows)
-        let treeData = try container.decode(Data.self, forKey: .tree)
-        log.debug("recovery data: \(String(decoding: treeData, as: UTF8.self))")
-        let treeDecoder = JSONDecoder()
-        spaces[state.space] = SpaceState(try Tree.inflate(
-            from: treeDecoder, data: treeData, screen: state.screens.last!, state: state))
+
+        var spaceData = try container.decode([Data].self, forKey: .spaceData)
+
+        curSpace = state.space
+        let curSpaceData = spaceData.remove(at: 0) // first space is always the current one.
+        log.debug("""
+            attempting to inflate current space:\n\(String(decoding: curSpaceData, as: UTF8.self))
+        """)
+        let curTree = try Tree.inflate(
+            from: JSONDecoder(), data: curSpaceData, screen: state.screens.last!, state: state)
+        self.spaces[curSpace] = SpaceState(curTree)
+
+        pendingSpaceData = spaceData
+
         setup()
         // Restore the focus state.
         onFocusedWindowChanged(window: state.focusedWindow)
-    }
-
-    enum CodingKeys: CodingKey {
-        case addNewWindows, tree
     }
 
     public static func recover(from data: Data, state: Swindler.State) throws -> WindowManager {
@@ -124,24 +138,47 @@ public final class WindowManager: Encodable, Decodable {
         return try encoder.encode(self)
     }
 
-    public init(state: Swindler.State) {
-        self.state = state
-        self.spaces[state.space] = SpaceState(Tree(screen: state.screens.last!))
-        setup()
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(addNewWindows, forKey: .addNewWindows)
+        let treeEncoder = JSONEncoder()
+
+        var spaceTrees: [Data] = []
+        func encodeTree(forSpace space: SpaceState) throws {
+            spaceTrees.append(try treeEncoder.encode(space.tree.peek()))
+        }
+        try encodeTree(forSpace: spaces[curSpace]!)
+        for (id, space) in spaces {
+            if id == curSpace {
+                // We already encoded the current space as the first value.
+                continue
+            }
+            // TODO: Skip empty trees.
+            try encodeTree(forSpace: space)
+        }
+        spaceTrees.append(contentsOf: pendingSpaceData)
+
+        try container.encode(spaceTrees, forKey: .spaceData)
+    }
+
+    func initSpace(id: Int) {
+        if !self.spaces.keys.contains(id) {
+            self.spaces[id] = SpaceState(Tree(screen: state.screens.last!))
+        }
     }
 
     private func setup() {
-        self.addNewWindows = false
-
-        func initSpace(id: Int) {
-            if !self.spaces.keys.contains(id) {
-                self.spaces[id] = SpaceState(Tree(screen: state.screens.last!))
+        initSpace(id: curSpace)
+        state.on { (event: SpaceWillChangeEvent) in
+            if self.spaces.keys.contains(event.id) {
+                // If this is a space we've seen before, eagerly switch to improve responsiveness.
+                self.curSpace = event.id
             }
         }
-
-        initSpace(id: state.space)
-        state.on { (event: SpaceChangedEvent) in
-            initSpace(id: event.id)
+        state.on { (event: SpaceDidChangeEvent) in
+            self.initSpace(id: event.id)
+            self.curSpace = event.id
         }
 
         state.on { (event: WindowCreatedEvent) in

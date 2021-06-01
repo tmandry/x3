@@ -376,6 +376,9 @@ final class WindowNode: Node {
             frame == window.frame.value &&
             title == window.title.value
         }) else {
+            log.debug(
+                "failed to find window pid=\(pid) frame=\(String(describing: frame)) title=\(title)"
+            )
             throw DeserializeError.windowNotFound
         }
         let window = windows.array[index]
