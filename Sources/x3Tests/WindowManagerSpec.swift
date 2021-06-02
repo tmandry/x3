@@ -208,6 +208,36 @@ class WindowManagerSpec: QuickSpec {
                     expect(fakeApp.mainWindow).toEventually(equal(b))
                 }
             }
+
+            describe("spaces") {
+                it("maintains separate layout and remembers selection per space") {
+                    wm.addWindow(a.window)
+                    wm.addWindow(b.window)
+                    let spaceA = swindlerState.currentSpaceId
+                    let spaceB = swindlerState.newSpaceId
+                    swindlerState.currentSpaceId = spaceB
+                    expect(wm.curSpace).toEventually(equal(spaceB))
+                    wm.addWindow(c.window)
+                    wm.addWindow(d.window)
+
+                    expect(c.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(d.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+
+                    // Assert a/b after c/d to make sure they don't change when adding c/d.
+                    expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+
+                    swindlerState.currentSpaceId = spaceA
+                    wm.moveFocus(.left)
+                    wm.moveFocus(.left) // noop
+                    expect(swindlerState.state.focusedWindow).toEventually(equal(a.window))
+
+                    swindlerState.currentSpaceId = spaceB
+                    wm.moveFocus(.left)
+                    wm.moveFocus(.left) // noop
+                    expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
+                }
+            }
         }
     }
 }
