@@ -31,6 +31,7 @@ class WindowManagerSpec: QuickSpec {
         beforeSuite {
             SWINDLER_LOGGER = OSLog.disabled
             X3_LOGGER = Logger(OSLog.disabled)
+            // X3_LOGGER = Logger(subsystem: "dev.tmandry.x3", category: "x3")
         }
 
         context("with a single screen") {
@@ -191,8 +192,8 @@ class WindowManagerSpec: QuickSpec {
                 testStack(to: .tabbed)
             }
 
-            describe("recovery") {
-                it("works") {
+            context("with a single space") {
+                it("recovery works") {
                     wm.addWindow(a.window)
                     wm.addWindow(b.window)
                     expect(fakeApp.mainWindow).toEventually(equal(b))
@@ -209,17 +210,21 @@ class WindowManagerSpec: QuickSpec {
                 }
             }
 
-            describe("spaces") {
-                it("maintains separate layout and remembers selection per space") {
+            context("with multiple spaces") {
+                var spaceA, spaceB: Int!
+                beforeEach {
                     wm.addWindow(a.window)
                     wm.addWindow(b.window)
-                    let spaceA = swindlerState.currentSpaceId
-                    let spaceB = swindlerState.newSpaceId
+                    spaceA = swindlerState.currentSpaceId
+                    spaceB = swindlerState.newSpaceId
                     swindlerState.currentSpaceId = spaceB
                     expect(wm.curSpace).toEventually(equal(spaceB))
                     wm.addWindow(c.window)
                     wm.addWindow(d.window)
+                    expect(fakeApp.focusedWindow).toEventually(equal(d))
+                }
 
+                it("maintains separate layout and remembers selection per space") {
                     expect(c.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
                     expect(d.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
 
@@ -236,6 +241,25 @@ class WindowManagerSpec: QuickSpec {
                     wm.moveFocus(.left)
                     wm.moveFocus(.left) // noop
                     expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
+                }
+
+                it("supports recovering each space's layout") {
+                    let data = try! wm.serialize()
+                    wm = try! WindowManager.recover(from: data, state: swindlerState.state)
+
+                    wm.moveFocus(.left)
+                    expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
+
+                    swindlerState.currentSpaceId = spaceA
+                    expect(wm.curSpace).toEventually(equal(spaceA))
+                    // FIXME: This is brittle :(
+                    // focusedWindow must be updated after the space, so we have a way to
+                    // observe that the wm saw it.
+                    fakeApp.focusedWindow = b
+                    expect(wm.focus).toNotEventually(beNil())
+
+                    wm.moveFocus(.left)
+                    expect(swindlerState.state.focusedWindow).toEventually(equal(a.window))
                 }
             }
         }

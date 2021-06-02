@@ -101,7 +101,9 @@ public final class WindowManager: Encodable, Decodable {
         setup()
     }
 
-    private init() {}
+    private init() {
+        curSpace = 0
+    }
 
     /// Don't use – use recover instead.
     public init(from decoder: Decoder) throws {
@@ -113,18 +115,12 @@ public final class WindowManager: Encodable, Decodable {
 
         curSpace = state.currentSpaceId
         let curSpaceData = spaceData.remove(at: 0) // first space is always the current one.
-        log.debug("""
-            attempting to inflate current space:\n\(String(decoding: curSpaceData, as: UTF8.self))
-        """)
-        let curTree = try Tree.inflate(
-            from: JSONDecoder(), data: curSpaceData, screen: state.screens.last!, state: state)
-        self.spaces[curSpace] = SpaceState(curTree)
+        log.info("Restoring current space")
+        try restoreCurrentSpace(curSpace, curSpaceData)
 
         pendingSpaceData = spaceData
 
         setup()
-        // Restore the focus state.
-        onFocusedWindowChanged(window: state.focusedWindow)
     }
 
     public static func recover(from data: Data, state: Swindler.State) throws -> WindowManager {
@@ -162,14 +158,41 @@ public final class WindowManager: Encodable, Decodable {
         try container.encode(spaceTrees, forKey: .spaceData)
     }
 
-    func initSpace(id: Int) {
-        if !self.spaces.keys.contains(id) {
-            self.spaces[id] = SpaceState(Tree(screen: state.screens.last!))
+    private func restoreCurrentSpace(_ id: Int, _ data: Data) throws {
+        log.debug("Attempting to restore: \(String(decoding: data, as: UTF8.self))")
+        let tr = try Tree.inflate(
+            from: JSONDecoder(),
+            data: data,
+            screen: state.screens.last!,
+            state: state)
+        spaces[id] = SpaceState(tr)
+        curSpace = id
+        onFocusedWindowChanged(window: state.focusedWindow) // update selection
+        log.info("Restored space successfully")
+    }
+
+    private func initCurrentSpace(id: Int) {
+        if self.spaces.keys.contains(id) {
+            return
         }
+        log.debug("Initializing space \(id)")
+        let screen = state.screens.last!
+        for (idx, data) in pendingSpaceData.enumerated() {
+            do {
+                try restoreCurrentSpace(id, data)
+                pendingSpaceData.remove(at: idx)
+                return
+            } catch let error {
+                log.debug("Failed to restore space: \(String(describing: error))")
+            }
+        }
+        log.info("Initialized new space \(id)")
+        spaces[id] = SpaceState(Tree(screen: screen))
+        curSpace = id
     }
 
     private func setup() {
-        initSpace(id: curSpace)
+        initCurrentSpace(id: curSpace)
         state.on { (event: SpaceWillChangeEvent) in
             if self.spaces.keys.contains(event.id) {
                 // If this is a space we've seen before, eagerly switch to improve responsiveness.
@@ -177,8 +200,8 @@ public final class WindowManager: Encodable, Decodable {
             }
         }
         state.on { (event: SpaceDidChangeEvent) in
-            self.initSpace(id: event.id)
-            self.curSpace = event.id
+            self.initCurrentSpace(id: event.id)
+            assert(self.curSpace == event.id)
         }
 
         state.on { (event: WindowCreatedEvent) in
@@ -394,6 +417,7 @@ public final class WindowManager: Encodable, Decodable {
         // and "locking" selection until they complete. This requires careful
         // error handling (what if the window we raise is destroyed first? what
         // if the request times out?)
+        log.debug("onFocusedWindowChanged: \(String(describing: window))")
         guard let window = window else { return }
         guard let node = tree.peek().find(window: window) else { return }
         focus = Crawler(at: node)
