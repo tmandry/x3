@@ -1,4 +1,5 @@
 import Cocoa
+import os
 import Nimble
 import Quick
 import Swindler
@@ -25,6 +26,11 @@ class WindowManagerSpec: QuickSpec {
             d = createWindowForApp(fakeApp, "D")
             e = createWindowForApp(fakeApp, "E")
             _ = (a, b, c, d, e)
+        }
+
+        beforeSuite {
+            SWINDLER_LOGGER = OSLog.disabled
+            X3_LOGGER = Logger(OSLog.disabled)
         }
 
         context("with a single screen") {

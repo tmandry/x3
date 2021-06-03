@@ -1,4 +1,5 @@
 import Cocoa
+import os
 import Nimble
 import Quick
 import Swindler
@@ -13,6 +14,11 @@ class TreeSpec: QuickSpec {
     override func spec() {
         var fakeApp: FakeApplication!
         var a, b, c, d, e: FakeWindow!
+
+        beforeSuite {
+            SWINDLER_LOGGER = OSLog.disabled
+            X3_LOGGER = Logger(OSLog.disabled)
+        }
 
         func setup(screens: [FakeScreen]) {
             let state = createState(screens: screens)
