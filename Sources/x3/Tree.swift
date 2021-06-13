@@ -538,6 +538,7 @@ extension ContainerNode {
     fileprivate func onNewNodeAdjustSize(index: Int) {
         let newSize: Float = 1.0 / Float(children.count)
         let scale = Float(children.count - 1) / Float(children.count)
+        log.debug("onNewNodeAdjustSize: scaling by \(scale)")
         for (i, child) in children.enumerated() {
             if i != index {
                 child.base.size *= scale
@@ -551,6 +552,7 @@ extension ContainerNode {
             return
         }
         let scale = Float(children.count + 1) / Float(children.count)
+        log.debug("onRemoveNodeAdjustSize: scaling by \(scale)")
         for child in children {
             child.base.size *= scale
         }
@@ -558,13 +560,17 @@ extension ContainerNode {
     }
     private func check() {
         // sizes should all sum to 1
-        assert(children.reduce(0.0){$0 + $1.base.size}.distance(to: 1.0) < 0.01)
+        if children.reduce(0.0, {$0 + $1.base.size}).distance(to: 1.0) >= 0.01 {
+            log.error("ContainerNode sizes do not add up! Sizes: \(self.children.map{$0.base.size})")
+        }
     }
 
     func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
+        log.debug("ContainerNode.refresh: rect=\(String(describing: rect))")
         var start: Float = 0.0
         for child in children {
             let end = start + child.base.size
+            log.debug("ContainerNode.refresh: start=\(start) end=\(end)")
             child.refresh(rect: rectForSlice(whole: rect, start, end), &promises)
             start = end
         }
@@ -595,7 +601,7 @@ extension ContainerNode {
 
 extension WindowNode {
     func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
-        // log.debug("RESIZING window to \(rect.rounded()) (\(rect)")
+        log.debug("resizing window to \(String(describing: rect.rounded())) (\(String(describing: rect))")
         let rect = rect.rounded()
         let promise = window.frame.set(rect)
         if promises != nil {
