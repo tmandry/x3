@@ -1,5 +1,7 @@
 import Carbon
+import Carbon.HIToolbox
 import os
+import Quartz
 import Swindler
 
 public var X3_LOGGER: Logger!
@@ -223,6 +225,15 @@ public final class WindowManager: Encodable, Decodable {
                 self.onFocusedWindowChanged(window: event.newValue)
             }
         }
+
+        state.on { (event: WindowFrameChangedEvent) in
+            // Apparently macOS does special things when you hold down option and resize.
+            // Command doesn't have this behavior.
+            let cmdPressed = CGEventSource.keyState(.hidSystemState, key: CGKeyCode(kVK_Command))
+            if cmdPressed && event.external {
+                self.onUserResize(event.window, oldFrame: event.oldValue, newFrame: event.newValue)
+            }
+        }
     }
 
     public func registerHotKeys(_ hotKeys: HotKeyManager) {
@@ -403,6 +414,12 @@ public final class WindowManager: Encodable, Decodable {
         }
         tree.with { tree in
             node.resize(byScreenPercentage: screenPct, inDirection: direction)
+        }
+    }
+
+    func onUserResize(_ window: Window, oldFrame: CGRect, newFrame: CGRect) {
+        tree.with { tree in
+            tree.resizeWindowAndRefresh(window, oldFrame: oldFrame, newFrame: newFrame)
         }
     }
 
