@@ -99,12 +99,16 @@ public final class WindowManager: Encodable, Decodable {
     public init(state: Swindler.State) {
         self.state = state
         curSpace = state.currentSpaceId
-        spaces[curSpace] = SpaceState(Tree(screen: state.screens.last!))
+        spaces[curSpace] = SpaceState(Tree(screen: mainScreen!))
         setup()
     }
 
     private init() {
         curSpace = 0
+    }
+
+    private var mainScreen: Screen? {
+        state.screens.last
     }
 
     /// Don't use – use recover instead.
@@ -165,11 +169,16 @@ public final class WindowManager: Encodable, Decodable {
         let tr = try Tree.inflate(
             from: JSONDecoder(),
             data: data,
-            screen: state.screens.last!,
+            screen: mainScreen!,
             state: state)
         spaces[id] = SpaceState(tr)
         curSpace = id
-        onFocusedWindowChanged(window: state.focusedWindow) // update selection
+
+        // update selection.
+        onFocusedWindowChanged(window: state.focusedWindow)
+        // refresh because the screen layout may have changed.
+        tree.peek().refresh()
+
         log.info("Restored space successfully")
     }
 
@@ -178,7 +187,7 @@ public final class WindowManager: Encodable, Decodable {
             return
         }
         log.debug("Initializing space \(id)")
-        let screen = state.screens.last!
+        let screen = mainScreen!
         for (idx, data) in pendingSpaceData.enumerated() {
             do {
                 try restoreCurrentSpace(id, data)
@@ -200,6 +209,7 @@ public final class WindowManager: Encodable, Decodable {
                 // If this is a space we've seen before, eagerly switch to improve responsiveness.
                 self.curSpace = event.id
             }
+            self.ensureTreeScreenIsCurrent()
         }
         state.on { (event: SpaceDidChangeEvent) in
             self.initCurrentSpace(id: event.id)
@@ -232,6 +242,20 @@ public final class WindowManager: Encodable, Decodable {
             let cmdPressed = CGEventSource.keyState(.hidSystemState, key: CGKeyCode(kVK_Command))
             if cmdPressed && event.external {
                 self.onUserResize(event.window, oldFrame: event.oldValue, newFrame: event.newValue)
+            }
+        }
+
+        state.on { (event: ScreenLayoutChangedEvent) in
+            self.ensureTreeScreenIsCurrent()
+        }
+    }
+
+    private func ensureTreeScreenIsCurrent() {
+        if let screen = mainScreen {
+            if screen != tree.peek().screen {
+                tree.with { tree in
+                    tree.screen = screen
+                }
             }
         }
     }
