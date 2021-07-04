@@ -52,11 +52,11 @@ func reload(_ wm: WindowManager) {
                 dataPipe.fileHandleForWriting.write(data)
                 try dataPipe.fileHandleForWriting.close()
 
-                var outputData: Data?
+                var outData: Data?
                 try DispatchQueue.global().sync {
-                    outputData = try statusPipe.fileHandleForReading.readToEnd()
+                    outData = try statusPipe.fileHandleForReading.readToEnd()
                 }
-                guard let outputData = outputData else {
+                guard let outputData = outData else {
                     log.error("Reloading not successful: stdout not available. Resuming.")
                     log.debug("stderr:")
                     task.terminate()
@@ -132,9 +132,9 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             self.manager.registerHotKeys(self.hotkeys)
         }.catch { error in
             log.critical("""
-                Swindler failed to initialize: \(String(describing: error), privacy: .public)
+                Failed to initialize: \(String(describing: error), privacy: .public)
             """)
-            fatalError("Swindler failed to initialize: \(error)")
+            fatalError("Failed to initialize: \(error)")
         }
     }
 
