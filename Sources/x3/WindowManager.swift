@@ -98,17 +98,13 @@ public final class WindowManager: Encodable, Decodable {
 
     public init(state: Swindler.State) {
         self.state = state
-        curSpace = state.currentSpaceId
-        spaces[curSpace] = SpaceState(Tree(screen: mainScreen!))
+        curSpace = state.mainScreen!.spaceId
+        spaces[curSpace] = SpaceState(Tree(screen: state.mainScreen!))
         setup()
     }
 
     private init() {
         curSpace = 0
-    }
-
-    private var mainScreen: Screen? {
-        state.screens.last
     }
 
     /// Don't use – use recover instead.
@@ -119,7 +115,7 @@ public final class WindowManager: Encodable, Decodable {
 
         var spaceData = try container.decode([Data].self, forKey: .spaceData)
 
-        curSpace = state.currentSpaceId
+        curSpace = state.mainScreen!.spaceId
         let curSpaceData = spaceData.remove(at: 0) // first space is always the current one.
         log.info("Restoring current space")
         try restoreCurrentSpace(curSpace, curSpaceData)
@@ -169,7 +165,7 @@ public final class WindowManager: Encodable, Decodable {
         let tr = try Tree.inflate(
             from: JSONDecoder(),
             data: data,
-            screen: mainScreen!,
+            screen: state.mainScreen!,
             state: state)
         spaces[id] = SpaceState(tr)
         curSpace = id
@@ -187,7 +183,7 @@ public final class WindowManager: Encodable, Decodable {
             return
         }
         log.debug("Initializing space \(id)")
-        let screen = mainScreen!
+        let screen = state.mainScreen!
         for (idx, data) in pendingSpaceData.enumerated() {
             do {
                 try restoreCurrentSpace(id, data)
@@ -205,15 +201,17 @@ public final class WindowManager: Encodable, Decodable {
     private func setup() {
         initCurrentSpace(id: curSpace)
         state.on { (event: SpaceWillChangeEvent) in
-            if self.spaces.keys.contains(event.id) {
+            let newSpace = self.state.mainScreen!.spaceId
+            if self.spaces.keys.contains(newSpace) {
                 // If this is a space we've seen before, eagerly switch to improve responsiveness.
-                self.curSpace = event.id
+                self.curSpace = newSpace
             }
             self.ensureTreeScreenIsCurrent()
         }
         state.on { (event: SpaceDidChangeEvent) in
-            self.initCurrentSpace(id: event.id)
-            assert(self.curSpace == event.id)
+            let newSpace = self.state.mainScreen!.spaceId
+            self.initCurrentSpace(id: newSpace)
+            assert(self.curSpace == newSpace)
         }
 
         state.on { (event: WindowCreatedEvent) in
@@ -251,7 +249,7 @@ public final class WindowManager: Encodable, Decodable {
     }
 
     private func ensureTreeScreenIsCurrent() {
-        if let screen = mainScreen {
+        if let screen = state.mainScreen {
             if screen != tree.peek().screen {
                 tree.with { tree in
                     tree.screen = screen
