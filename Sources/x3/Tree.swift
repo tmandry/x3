@@ -608,7 +608,7 @@ extension ContainerNode {
 
 extension WindowNode {
     func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
-        log.debug("resizing window to \(String(describing: rect.rounded())) (\(String(describing: rect))")
+        log.debug("resizing window to \(String(describing: rect.rounded())) (\(String(describing: rect)): \(self.window)")
         let rect = rect.rounded()
         let promise = window.frame.set(rect)
         if promises != nil {

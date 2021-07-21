@@ -440,9 +440,7 @@ public final class WindowManager: Encodable, Decodable {
     }
 
     func onUserResize(_ window: Window, oldFrame: CGRect, newFrame: CGRect) {
-        tree.with { tree in
-            tree.resizeWindowAndRefresh(window, oldFrame: oldFrame, newFrame: newFrame)
-        }
+        tree.peek().resizeWindowAndRefresh(window, oldFrame: oldFrame, newFrame: newFrame)
     }
 
     private func onFocusedWindowChanged(window: Window?) {
