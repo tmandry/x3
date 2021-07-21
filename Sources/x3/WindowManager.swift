@@ -328,6 +328,9 @@ public final class WindowManager: Encodable, Decodable {
                 self.addWindow(window)
             }
         }
+        hotKeys.register(keyCode: kVK_ANSI_X, modifierKeys: optionKey | shiftKey) {
+            self.removeCurrentWindow()
+        }
         hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey) {
             self.tree.peek().refresh()
         }
@@ -380,6 +383,14 @@ public final class WindowManager: Encodable, Decodable {
         }
 
         return node
+    }
+
+    func removeCurrentWindow() {
+        guard let node = self.focus?.node else {
+            return
+        }
+        self.focus = nil
+        node.base.removeFromTree()
     }
 
     private func onWindowDestroyed(_ window: Window) {

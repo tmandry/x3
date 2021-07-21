@@ -135,6 +135,14 @@ extension Node {
         oldParent.cullIfEmpty()
     }
 
+    func removeFromTree() {
+        guard let oldParent = base.parent else {
+            fatalError("can't reparent a root or orphaned node: \(self)")
+        }
+        oldParent.removeChild(self.kind)
+        oldParent.cullIfEmpty()
+    }
+
     fileprivate func setParentAfterDeserializing(_ newParent: ContainerNode) {
         assert(base.parent == nil)
         base.parent = newParent
