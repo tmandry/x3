@@ -82,8 +82,14 @@ extension Tree: Codable {
 
 class Node: Codable {
     fileprivate(set) var parent: ContainerNode?
+
+    /// The size this node takes up within its parent, expressed as a value between 0.0 and 1.0.
     fileprivate var size: Float32
+
+    fileprivate var refreshDisabled: Bool = false
+
     private weak var delegate_: NodeDelegate?
+
     fileprivate var delegate: NodeDelegate {
         get {
             assert(delegate_ != nil, "nil delegate: \(self)")
@@ -126,6 +132,14 @@ extension Node {
         oldParent.removeChild(self.kind)
         self.base.parent = newParent
         newParent.addChild(self.kind, at: point)
+        oldParent.cullIfEmpty()
+    }
+
+    func removeFromTree() {
+        guard let oldParent = base.parent else {
+            fatalError("can't reparent a root or orphaned node: \(self)")
+        }
+        oldParent.removeChild(self.kind)
         oldParent.cullIfEmpty()
     }
 
@@ -181,6 +195,7 @@ extension Node {
         delegate.find_(window)
     }
     fileprivate func refresh(rect: CGRect, _ promises: inout [Promise<()>]?) {
+        if refreshDisabled { return }
         delegate.refresh_(rect, &promises)
     }
 }
@@ -601,7 +616,7 @@ extension ContainerNode {
 
 extension WindowNode {
     func refresh_(_ rect: CGRect, _ promises: inout [Promise<()>]?) {
-        log.debug("resizing window to \(String(describing: rect.rounded())) (\(String(describing: rect))")
+        log.debug("resizing window to \(String(describing: rect.rounded())) (\(String(describing: rect)): \(self.window)")
         let rect = rect.rounded()
         let promise = window.frame.set(rect)
         if promises != nil {
@@ -614,6 +629,32 @@ private extension CGRect {
     func rounded() -> CGRect {
         return CGRect(x: self.minX.rounded(), y: self.minY.rounded(),
                       width: self.width.rounded(), height: self.height.rounded())
+    }
+}
+
+extension Tree {
+    public func resizeWindowAndRefresh(_ window: Window, oldFrame: CGRect, newFrame: CGRect) {
+        if oldFrame.size == newFrame.size {
+            return
+        }
+        guard let windowNode = root.kind.find(window: window) else {
+            return
+        }
+        func checkAndResize(_ direction: Direction, _ delta: CGFloat, _ whole: CGFloat) {
+            if !delta.isZero {
+                let pct = Float(delta / whole)
+                windowNode.kind.resize(byScreenPercentage: pct, inDirection: direction)
+            }
+        }
+        checkAndResize(.left, oldFrame.minX - newFrame.minX, screen.applicationFrame.width)
+        checkAndResize(.right, newFrame.maxX - oldFrame.maxX, screen.applicationFrame.width)
+        checkAndResize(.down, oldFrame.minY - newFrame.minY, screen.applicationFrame.height)
+        checkAndResize(.up, newFrame.maxY - oldFrame.maxY, screen.applicationFrame.height)
+
+        // Disable resizing this particular window while we refresh.
+        windowNode.refreshDisabled = true
+        refresh()
+        windowNode.refreshDisabled = false
     }
 }
 

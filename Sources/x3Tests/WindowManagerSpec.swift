@@ -215,9 +215,12 @@ class WindowManagerSpec: QuickSpec {
                 beforeEach {
                     wm.addWindow(a.window)
                     wm.addWindow(b.window)
-                    spaceA = swindlerState.currentSpaceId
+                    expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
+                    expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+
+                    spaceA = swindlerState.mainScreen!.spaceId
                     spaceB = swindlerState.newSpaceId
-                    swindlerState.currentSpaceId = spaceB
+                    swindlerState.mainScreen!.spaceId = spaceB
                     expect(wm.curSpace).toEventually(equal(spaceB))
                     wm.addWindow(c.window)
                     wm.addWindow(d.window)
@@ -232,12 +235,14 @@ class WindowManagerSpec: QuickSpec {
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
 
-                    swindlerState.currentSpaceId = spaceA
+                    swindlerState.mainScreen!.spaceId = spaceA
+                    expect(wm.curSpace).toEventually(equal(spaceA))
                     wm.moveFocus(.left)
                     wm.moveFocus(.left) // noop
                     expect(swindlerState.state.focusedWindow).toEventually(equal(a.window))
 
-                    swindlerState.currentSpaceId = spaceB
+                    swindlerState.mainScreen!.spaceId = spaceB
+                    expect(wm.curSpace).toEventually(equal(spaceB))
                     wm.moveFocus(.left)
                     wm.moveFocus(.left) // noop
                     expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
@@ -250,7 +255,7 @@ class WindowManagerSpec: QuickSpec {
                     wm.moveFocus(.left)
                     expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
 
-                    swindlerState.currentSpaceId = spaceA
+                    swindlerState.mainScreen!.spaceId = spaceA
                     expect(wm.curSpace).toEventually(equal(spaceA))
                     // FIXME: This is brittle :(
                     // focusedWindow must be updated after the space, so we have a way to
