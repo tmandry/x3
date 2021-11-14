@@ -179,6 +179,7 @@ public final class WindowManager: Encodable, Decodable {
     }
 
     private func initCurrentSpace(id: Int) {
+        curSpace = id
         if self.spaces.keys.contains(id) {
             return
         }
@@ -195,23 +196,26 @@ public final class WindowManager: Encodable, Decodable {
         }
         log.info("Initialized new space \(id)")
         spaces[id] = SpaceState(Tree(screen: screen))
-        curSpace = id
     }
 
     private func setup() {
         initCurrentSpace(id: curSpace)
         state.on { (event: SpaceWillChangeEvent) in
+            log.debug("\(String(describing: event))")
             let newSpace = self.state.mainScreen!.spaceId
             if self.spaces.keys.contains(newSpace) {
                 // If this is a space we've seen before, eagerly switch to improve responsiveness.
                 self.curSpace = newSpace
+                log.debug("curSpace is now \(newSpace)")
             }
             self.ensureTreeScreenIsCurrent()
         }
         state.on { (event: SpaceDidChangeEvent) in
+            log.debug("\(String(describing: event))")
             let newSpace = self.state.mainScreen!.spaceId
             self.initCurrentSpace(id: newSpace)
             assert(self.curSpace == newSpace)
+            log.debug("curSpace is now \(newSpace)")
         }
 
         state.on { (event: WindowCreatedEvent) in
@@ -318,6 +322,9 @@ public final class WindowManager: Encodable, Decodable {
 
         hotKeys.register(keyCode: kVK_ANSI_D, modifierKeys: optionKey | shiftKey) {
             log.debug("\(String(describing: self.tree.peek().root))")
+        }
+        hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey) {
+            self.tree.peek().refresh()
         }
         hotKeys.register(keyCode: kVK_ANSI_R, modifierKeys: optionKey | shiftKey) {
             self.reload?(self)
@@ -451,7 +458,9 @@ public final class WindowManager: Encodable, Decodable {
     }
 
     func onUserResize(_ window: Window, oldFrame: CGRect, newFrame: CGRect) {
+        log.debug("onUserResize: \(window) \(String(describing: oldFrame)) -> \(String(describing: newFrame))")
         tree.peek().resizeWindowAndRefresh(window, oldFrame: oldFrame, newFrame: newFrame)
+        log.debug("onUserResize end: \(window)")
     }
 
     private func onFocusedWindowChanged(window: Window?) {

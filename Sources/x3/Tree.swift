@@ -140,7 +140,6 @@ extension Node {
             fatalError("can't reparent a root or orphaned node: \(self)")
         }
         oldParent.removeChild(self.kind)
-        oldParent.cullIfEmpty()
     }
 
     fileprivate func setParentAfterDeserializing(_ newParent: ContainerNode) {
@@ -566,7 +565,8 @@ extension ContainerNode {
         if children.count == 0 {
             return
         }
-        let scale = Float(children.count + 1) / Float(children.count)
+        let sum = children.reduce(0.0, { $0 + $1.base.size })
+        let scale = 1.0 / sum
         log.debug("onRemoveNodeAdjustSize: scaling by \(scale)")
         for child in children {
             child.base.size *= scale
