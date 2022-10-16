@@ -7,10 +7,20 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug",
-            "program": "${workspaceFolder}/.build/debug/x3",
+            "name": "Debug x3",
+            "program": "${workspaceFolder:x3}/.build/debug/x3",
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder:x3}",
+            "preLaunchTask": "swift: Build Debug x3"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Release x3",
+            "program": "${workspaceFolder:x3}/.build/release/x3",
+            "args": [],
+            "cwd": "${workspaceFolder:x3}",
+            "preLaunchTask": "swift: Build Release x3"
         }
     ]
 }
