@@ -534,7 +534,7 @@ extension ContainerNode {
 }
 extension ContainerNode {
     func find_(_ window: Swindler.Window) -> WindowNode? {
-        return children.compactMap({$0.find(window: window)}).first
+        return children.lazy.compactMap({$0.find(window: window)}).first
     }
 }
 extension WindowNode {
