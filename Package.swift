@@ -34,8 +34,20 @@ let package = Package(
         .target(
             name: "x3App",
             dependencies: ["x3"],
+            exclude: [
+                // Handled in link flags below.
+                "Info.plist",
+            ],
             resources: [
                 .process("x3.entitlements"),
+            ],
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Sources/x3App/Info.plist",
+                ]),
             ]
         ),
         .testTarget(
