@@ -80,10 +80,17 @@ func reload(_ wm: WindowManager) {
                     task.terminate()
                     return
                 }
+                Thread.sleep(forTimeInterval: 0.5)
                 if !task.isRunning {
                     log.error("""
                         Reloading not successful: Got `\(OK_LINE)` but process has exited with code \
                         \(task.terminationStatus). Resuming.
+                    """)
+                    log.debug("Output:")
+                    log.debug("\(output)")
+                    log.debug("Error:")
+                    log.debug("""
+                        \(String(decoding: errorPipe.fileHandleForReading.availableData, as: UTF8.self))
                     """)
                     return
                 }
