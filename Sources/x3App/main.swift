@@ -12,4 +12,9 @@ let applicationDelegate = AppDelegate()
 let application = NSApplication.shared
 application.setActivationPolicy(NSApplication.ActivationPolicy.accessory)
 application.delegate = applicationDelegate
+
+signal(SIGINT) { _ in
+    application.terminate(nil)
+}
+
 application.run()
