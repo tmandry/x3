@@ -8,6 +8,10 @@ var log = Logger(subsystem: subsystem, category: "x3")
 X3_LOGGER = log
 SWINDLER_LOGGER = OSLog(subsystem: subsystem, category: "swindler")
 
+DispatchQueue.main.async {
+    log.info("main.swift dispatch")
+}
+
 let applicationDelegate = AppDelegate()
 let application = NSApplication.shared
 application.setActivationPolicy(NSApplication.ActivationPolicy.accessory)

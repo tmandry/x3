@@ -1,6 +1,7 @@
 import Carbon
 import Carbon.HIToolbox
 import os
+import PromiseKit
 import Quartz
 import Swindler
 
@@ -59,7 +60,7 @@ let resizeAmt: Float = 0.05
 let STATE = CodingUserInfoKey(rawValue: "state")!
 
 /// Defines the basic window management operations and their behavior.
-public final class WindowManager: Encodable, Decodable {
+public final class WindowManager: Encodable {
     var state: Swindler.State!
     public var reload: Optional<(WindowManager) -> ()> = nil
 
@@ -93,7 +94,13 @@ public final class WindowManager: Encodable, Decodable {
 
 
     enum CodingKeys: CodingKey {
-        case addNewWindows, spaceData
+        case addNewWindows, spaceData, swindlerData
+    }
+
+    public static func initialize() -> Promise<WindowManager> {
+        Swindler.initialize().map { state in
+            return WindowManager(state: state)
+        }
     }
 
     public init(state: Swindler.State) {
@@ -103,14 +110,9 @@ public final class WindowManager: Encodable, Decodable {
         setup()
     }
 
-    private init() {
-        curSpace = 0
-    }
+    init(from container: KeyedDecodingContainer<CodingKeys>, state: Swindler.State) throws {
+        self.state = state
 
-    /// Don't use – use recover instead.
-    public init(from decoder: Decoder) throws {
-        state = (decoder.userInfo[STATE]! as! Swindler.State)
-        let container = try decoder.container(keyedBy: CodingKeys.self)
         addNewWindows = try container.decode(Bool.self, forKey: .addNewWindows)
 
         var spaceData = try container.decode([Data].self, forKey: .spaceData)
@@ -125,10 +127,19 @@ public final class WindowManager: Encodable, Decodable {
         setup()
     }
 
-    public static func recover(from data: Data, state: Swindler.State) throws -> WindowManager {
+    public static func recover(from data: Data) throws -> Promise<WindowManager> {
+        class Initializer: Decodable {
+            let promise: Promise<WindowManager>
+            required init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                let swindlerData = try container.decode(Data.self, forKey: .swindlerData)
+                promise = try Swindler.initialize(restoringFrom: swindlerData).map { state in
+                    try WindowManager(from: container, state: state)
+                }
+            }
+        }
         let decoder = JSONDecoder()
-        decoder.userInfo[STATE] = state
-        return try decoder.decode(WindowManager.self, from: data)
+        return try decoder.decode(Initializer.self, from: data).promise
     }
 
     public func serialize() throws -> Data {
@@ -158,6 +169,10 @@ public final class WindowManager: Encodable, Decodable {
         spaceTrees.append(contentsOf: pendingSpaceData)
 
         try container.encode(spaceTrees, forKey: .spaceData)
+
+        if let data = try state.recoveryData() {
+            try container.encode(data, forKey: .swindlerData)
+        }
     }
 
     private func restoreCurrentSpace(_ id: Int, _ data: Data) throws {

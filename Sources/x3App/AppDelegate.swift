@@ -7,20 +7,25 @@
 
 import Cocoa
 import AXSwift
+import PromiseKit
 import Swindler
 import x3
 
 let RECOVER = "--recover"
 let OK_LINE = "recover ok"
 
-func recover(_ state: Swindler.State) throws -> WindowManager {
+func recover() throws -> Promise<WindowManager> {
     log.info("recover: reading")
     let data = FileHandle.standardInput.readDataToEndOfFile()
     log.info("recover: got data: \(data)")
-    let manager = try WindowManager.recover(from: data, state: state)
+    let manager = try WindowManager.recover(from: data)
+
+    // Signal restoration complete, then close stdout and redirect future output
+    // to stderr.
     print(OK_LINE)
     fflush(stdout)
     FileHandle.standardOutput.closeFile()
+    dup2(fileno(stderr), STDOUT_FILENO)
     return manager
 }
 
@@ -118,23 +123,44 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     var manager: WindowManager!
     var hotkeys: HotKeyManager!
 
+    public func application(_ app: NSApplication, willEncodeRestorableState coder: NSCoder) {
+        log.info("willEncodeRestorableState ")
+    }
+
+    public func application(_ app: NSApplication, didDecodeRestorableState coder: NSCoder) {
+        log.info("didEncodeRestorableState ")
+    }
+
+    //public func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    //    true
+    //}
+
     public func applicationDidFinishLaunching(_ aNotification: Notification) {
+        log.info("applicationDidFinishLaunching")
         guard AXSwift.checkIsProcessTrusted(prompt: true) else {
             log.error("Not trusted as an AX process; please authorize and re-launch")
-            print("Not trusted as an AX process; please authorize and re-launch")
+            "Not trusted as an AX process; please authorize and re-launch"
+                .data(using: .utf8)
+                .map(FileHandle.standardError.write)
             NSApp.terminate(self)
             return
         }
 
+        UserDefaults.standard.register(defaults: ["NSWindowRestoresWorkspaceAtLaunch": true])
+
         hotkeys = HotKeyManager()
 
-        Swindler.initialize().done { state in
-            log.debug("done with init. args: \(CommandLine.arguments)")
+        log.debug("args: \(CommandLine.arguments)")
+
+        PromiseKit.firstly { () -> Promise<WindowManager> in
             if CommandLine.arguments.contains(RECOVER) {
-                self.manager = try recover(state)
+                return try recover()
             } else {
-                self.manager = WindowManager(state: state)
+                return WindowManager.initialize()
             }
+        }.done { wm in
+            log.debug("done with init")
+            self.manager = wm
             self.manager.reload = reload
             self.manager.registerHotKeys(self.hotkeys)
         }.catch { error in
