@@ -128,7 +128,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func application(_ app: NSApplication, didDecodeRestorableState coder: NSCoder) {
-        log.info("didEncodeRestorableState ")
+        log.info("didDecodeRestorableState ")
     }
 
     //public func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -173,5 +173,6 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationWillTerminate(_ aNotification: Notification) {
         // Insert code here to tear down your application
+        log.info("applicationWillTerminate")
     }
 }

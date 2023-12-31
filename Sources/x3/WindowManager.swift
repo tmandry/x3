@@ -132,8 +132,8 @@ public final class WindowManager: Encodable {
             let promise: Promise<WindowManager>
             required init(from decoder: Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
-                let swindlerData = try container.decode(Data.self, forKey: .swindlerData)
-                promise = try Swindler.initialize(restoringFrom: swindlerData).map { state in
+                //let swindlerData = try container.decode(Data.self, forKey: .swindlerData)
+                promise = Swindler.initialize(/*restoringFrom: swindlerData*/).map { state in
                     try WindowManager(from: container, state: state)
                 }
             }
@@ -170,9 +170,9 @@ public final class WindowManager: Encodable {
 
         try container.encode(spaceTrees, forKey: .spaceData)
 
-        if let data = try state.recoveryData() {
-            try container.encode(data, forKey: .swindlerData)
-        }
+        //if let data = try state.recoveryData() {
+        //    try container.encode(data, forKey: .swindlerData)
+        //}
     }
 
     private func restoreCurrentSpace(_ id: Int, _ data: Data) throws {

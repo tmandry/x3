@@ -14,7 +14,8 @@ DispatchQueue.main.async {
 
 let applicationDelegate = AppDelegate()
 let application = NSApplication.shared
-application.setActivationPolicy(NSApplication.ActivationPolicy.accessory)
+//application.setActivationPolicy(NSApplication.ActivationPolicy.accessory)
+application.setActivationPolicy(NSApplication.ActivationPolicy.regular)
 application.delegate = applicationDelegate
 
 signal(SIGINT) { _ in
