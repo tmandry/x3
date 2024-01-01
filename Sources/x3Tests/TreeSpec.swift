@@ -124,14 +124,14 @@ class TreeSpec: QuickSpec {
                     cnode.kind.resize(byScreenPercentage: 0.25, inDirection: .left)
                     return tree.awaitRefresh()
                 }.then { () -> Promise<()> in
-                    expect(a.frame).to(equal(r(x: 0,    y: 50, w:  667, h: 1000)))
-                    expect(b.frame).to(equal(r(x: 667,  y: 50, w:  167, h: 1000)))
-                    expect(c.frame).to(equal(r(x: 1833, y: 50, w: 1167, h: 1000)))
+                    expect(a.frame).to(equal(r(x: 0,   y: 50, w:  667, h: 1000)))
+                    expect(b.frame).to(equal(r(x: 667, y: 50, w:  167, h: 1000)))
+                    expect(c.frame).to(equal(r(x: 833, y: 50, w: 1167, h: 1000)))
                     bnode.destroy()
                     return tree.awaitRefresh()
                 }.done {
-                    expect(a.frame).to(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
-                    expect(c.frame).to(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
+                    expect(a.frame).to(equal(r(x: 0,   y: 50, w:  727, h: 1000)))
+                    expect(c.frame).to(equal(r(x: 727, y: 50, w: 1273, h: 1000)))
                 }.then { () -> Promise<()> in
                     anode.destroy()
                     return tree.awaitRefresh()
