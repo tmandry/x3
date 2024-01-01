@@ -2,6 +2,10 @@ import Cocoa
 import Swindler
 import PromiseKit
 
+struct WindowId: Equatable, Hashable {
+    let id: Int
+}
+
 enum Layout: String, Codable {
     case horizontal
     case vertical

@@ -48,61 +48,61 @@ class WindowManagerSpec: QuickSpec {
 
             describe("addWindow") {
                 it("lays out windows horizontally by default") {
-                    wm.addWindow(a.window)
-                    wm.addWindow(b.window)
+                    wm.curSpace.addWindow(a.window)
+                    wm.curSpace.addWindow(b.window)
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
                 }
 
                 it("raises added window") {
-                    wm.addWindow(a.window)
+                    wm.curSpace.addWindow(a.window)
                     expect(fakeApp.mainWindow).toEventually(equal(a))
-                    wm.addWindow(b.window)
+                    wm.curSpace.addWindow(b.window)
                     expect(fakeApp.mainWindow).toEventually(equal(b))
                 }
             }
 
             it("moves focus around") {
-                wm.addWindow(a.window)
-                wm.addWindow(b.window)
-                wm.addWindow(c.window)
+                wm.curSpace.addWindow(a.window)
+                wm.curSpace.addWindow(b.window)
+                wm.curSpace.addWindow(c.window)
 
                 expect(fakeApp.mainWindow).toEventually(equal(c))
-                wm.moveFocus(.left)
+                wm.curSpace.moveFocus(.left)
                 expect(fakeApp.mainWindow).toEventually(equal(b))
-                wm.moveFocus(.left)
+                wm.curSpace.moveFocus(.left)
                 expect(fakeApp.mainWindow).toEventually(equal(a))
-                wm.moveFocus(.left) // no-op
-                wm.moveFocus(.right)
+                wm.curSpace.moveFocus(.left) // no-op
+                wm.curSpace.moveFocus(.right)
                 expect(fakeApp.mainWindow).toEventually(equal(b))
             }
 
             it("follows external changes to window focus") {
-                wm.addWindow(a.window)
-                wm.addWindow(b.window)
-                wm.addWindow(c.window)
-                wm.addWindow(d.window)
+                wm.curSpace.addWindow(a.window)
+                wm.curSpace.addWindow(b.window)
+                wm.curSpace.addWindow(c.window)
+                wm.curSpace.addWindow(d.window)
 
                 expect(fakeApp.mainWindow).toEventually(equal(d))
                 fakeApp.mainWindow = a
-                expect(wm.focusedWindow).toEventually(equal(a.window))
-                wm.moveFocus(.right)
+                expect(wm.curSpace.focusedWindow).toEventually(equal(a.window))
+                wm.curSpace.moveFocus(.right)
                 expect(fakeApp.mainWindow).toEventually(equal(b))
             }
 
             it("allows moving up and down the tree") {
-                wm.addWindow(a.window)
-                wm.addWindow(b.window)
-                wm.split(.vertical)
-                wm.addWindow(c.window)
-                wm.focusParent()
-                wm.moveFocusedNode(.left)
+                wm.curSpace.addWindow(a.window)
+                wm.curSpace.addWindow(b.window)
+                wm.curSpace.split(.vertical)
+                wm.curSpace.addWindow(c.window)
+                wm.curSpace.focusParent()
+                wm.curSpace.moveFocusedNode(.left)
                 // TODO: this next line flaked: expected to eventually equal <(1000.0, 50.0, 1000.0, 1000.0)>, got <(0.0, 50.0, 1000.0, 1000.0)>
                 expect(a.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h: 1000)))
                 expect(b.frame).toEventually(equal(r(x:    0, y: 550, w: 1000, h:  500)))
                 expect(c.frame).toEventually(equal(r(x:    0, y:  50, w: 1000, h:  500)))
-                wm.focusChild()
-                wm.moveFocusedNode(.right)
+                wm.curSpace.focusChild()
+                wm.curSpace.moveFocusedNode(.right)
                 expect(a.frame).toEventually(equal(r(x: 1333, y:  50, w:  667, h: 1000)))
                 expect(b.frame).toEventually(equal(r(x:    0, y:  50, w:  667, h: 1000)))
                 expect(c.frame).toEventually(equal(r(x:  667, y:  50, w:  667, h: 1000)))
@@ -110,51 +110,51 @@ class WindowManagerSpec: QuickSpec {
 
             describe("split") {
                 it("with no windows, sets the direction of the root") {
-                    wm.split(.vertical)
-                    wm.addWindow(a.window)
-                    wm.addWindow(b.window)
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.addWindow(a.window)
+                    wm.curSpace.addWindow(b.window)
                     expect(a.frame).toEventually(equal(r(x: 0, y: 550, w: 2000, h: 500)))
                     expect(b.frame).toEventually(equal(r(x: 0, y:  50, w: 2000, h: 500)))
                 }
 
                 it("with windows, creates a new container above the current node") {
-                    wm.addWindow(a.window)
-                    let bNode = wm.addWindowReturningNode(b.window)!
-                    wm.split(.vertical)
-                    wm.addWindow(c.window)
+                    wm.curSpace.addWindow(a.window)
+                    let bNode = wm.curSpace.addWindowReturningNode(b.window)!
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.addWindow(c.window)
                     expect(a.frame).toEventually(equal(r(x: 0,    y:  50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
                     expect(c.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h:  500)))
-                    expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
+                    expect(bNode.parent?.parent).to(equal(wm.curSpace.tree.peek().root))
                 }
 
                 it("with root selected, creates a new container above the current root") {
-                    wm.addWindow(a.window)
-                    let bNode = wm.addWindowReturningNode(b.window)!
-                    wm.focusParent()
-                    wm.split(.vertical)
-                    wm.addWindow(c.window)
+                    wm.curSpace.addWindow(a.window)
+                    let bNode = wm.curSpace.addWindowReturningNode(b.window)!
+                    wm.curSpace.focusParent()
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.addWindow(c.window)
                     // TODO: this line flaked (split mode): expected to eventually equal <(0.0, 550.0, 1000.0, 500.0)>, got <(0.0, 50.0, 1000.0, 1000.0)>
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 550, w: 1000, h:  500)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
                     expect(c.frame).toEventually(equal(r(x: 0,    y:  50, w: 2000, h:  500)))
-                    expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
+                    expect(bNode.parent?.parent).to(equal(wm.curSpace.tree.peek().root))
                 }
 
                 it("after repeated invocations with no windows added, only creates one container") {
-                    wm.addWindow(a.window)
-                    let bNode = wm.addWindowReturningNode(b.window)!
-                    wm.split(.vertical)
-                    wm.split(.horizontal)
-                    wm.split(.horizontal)
-                    wm.split(.vertical)
-                    wm.split(.horizontal)
-                    wm.split(.vertical)
-                    wm.addWindow(c.window)
+                    wm.curSpace.addWindow(a.window)
+                    let bNode = wm.curSpace.addWindowReturningNode(b.window)!
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.split(.horizontal)
+                    wm.curSpace.split(.horizontal)
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.split(.horizontal)
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.addWindow(c.window)
                     expect(a.frame).toEventually(equal(r(x: 0,    y:  50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 550, w: 1000, h:  500)))
                     expect(c.frame).toEventually(equal(r(x: 1000, y:  50, w: 1000, h:  500)))
-                    expect(bNode.parent?.parent).to(equal(wm.tree.peek().root))
+                    expect(bNode.parent?.parent).to(equal(wm.curSpace.tree.peek().root))
                 }
             }
 
@@ -162,12 +162,12 @@ class WindowManagerSpec: QuickSpec {
                 func testStack(to: Layout) {
                     context("when used on a horizontal layout") {
                         it("converts to a \(to) and unstacks back to horizontal") {
-                            wm.addWindow(a.window)
-                            wm.addWindow(b.window)
-                            wm.stack(layout: to)
+                            wm.curSpace.addWindow(a.window)
+                            wm.curSpace.addWindow(b.window)
+                            wm.curSpace.stack(layout: to)
                             expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
                             expect(b.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
-                            wm.unstack()
+                            wm.curSpace.unstack()
                             expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
                             expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
                         }
@@ -175,13 +175,13 @@ class WindowManagerSpec: QuickSpec {
 
                     context("when used on a vertical layout") {
                         it("converts to a \(to) and unstacks back to vertical") {
-                            wm.split(.vertical)
-                            wm.addWindow(a.window)
-                            wm.addWindow(b.window)
-                            wm.stack(layout: to)
+                            wm.curSpace.split(.vertical)
+                            wm.curSpace.addWindow(a.window)
+                            wm.curSpace.addWindow(b.window)
+                            wm.curSpace.stack(layout: to)
                             expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
                             expect(b.frame).toEventually(equal(r(x: 0,    y: 50, w: 2000, h: 1000)))
-                            wm.unstack()
+                            wm.curSpace.unstack()
                             expect(a.frame).toEventually(equal(r(x: 0, y: 550, w: 2000, h: 500)))
                             expect(b.frame).toEventually(equal(r(x: 0, y:  50, w: 2000, h: 500)))
                         }
@@ -194,17 +194,17 @@ class WindowManagerSpec: QuickSpec {
 
             context("with a single space") {
                 it("recovery works") {
-                    wm.addWindow(a.window)
-                    wm.addWindow(b.window)
+                    wm.curSpace.addWindow(a.window)
+                    wm.curSpace.addWindow(b.window)
                     expect(fakeApp.mainWindow).toEventually(equal(b))
-                    wm.split(.vertical)
-                    wm.addWindow(c.window)
+                    wm.curSpace.split(.vertical)
+                    wm.curSpace.addWindow(c.window)
 
                     expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
 
                     let data = try! wm.serialize()
                     wm = try! WindowManager.recover(from: data, state: swindlerState.state)
-                    wm.moveFocus(.up)
+                    wm.curSpace.moveFocus(.up)
 
                     expect(fakeApp.mainWindow).toEventually(equal(b))
                 }
@@ -213,17 +213,17 @@ class WindowManagerSpec: QuickSpec {
             context("with multiple spaces") {
                 var spaceA, spaceB: Int!
                 beforeEach {
-                    wm.addWindow(a.window)
-                    wm.addWindow(b.window)
+                    wm.curSpace.addWindow(a.window)
+                    wm.curSpace.addWindow(b.window)
                     expect(a.frame).toEventually(equal(r(x: 0,    y: 50, w: 1000, h: 1000)))
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
 
                     spaceA = swindlerState.mainScreen!.spaceId
                     spaceB = swindlerState.newSpaceId
                     swindlerState.mainScreen!.spaceId = spaceB
-                    expect(wm.curSpace).toEventually(equal(spaceB))
-                    wm.addWindow(c.window)
-                    wm.addWindow(d.window)
+                    expect(wm.curSpaceId).toEventually(equal(spaceB))
+                    wm.curSpace.addWindow(c.window)
+                    wm.curSpace.addWindow(d.window)
                     expect(fakeApp.focusedWindow).toEventually(equal(d))
                 }
 
@@ -236,15 +236,15 @@ class WindowManagerSpec: QuickSpec {
                     expect(b.frame).toEventually(equal(r(x: 1000, y: 50, w: 1000, h: 1000)))
 
                     swindlerState.mainScreen!.spaceId = spaceA
-                    expect(wm.curSpace).toEventually(equal(spaceA))
-                    wm.moveFocus(.left)
-                    wm.moveFocus(.left) // noop
+                    expect(wm.curSpaceId).toEventually(equal(spaceA))
+                    wm.curSpace.moveFocus(.left)
+                    wm.curSpace.moveFocus(.left) // noop
                     expect(swindlerState.state.focusedWindow).toEventually(equal(a.window))
 
                     swindlerState.mainScreen!.spaceId = spaceB
-                    expect(wm.curSpace).toEventually(equal(spaceB))
-                    wm.moveFocus(.left)
-                    wm.moveFocus(.left) // noop
+                    expect(wm.curSpaceId).toEventually(equal(spaceB))
+                    wm.curSpace.moveFocus(.left)
+                    wm.curSpace.moveFocus(.left) // noop
                     expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
                 }
 
@@ -252,18 +252,18 @@ class WindowManagerSpec: QuickSpec {
                     let data = try! wm.serialize()
                     wm = try! WindowManager.recover(from: data, state: swindlerState.state)
 
-                    wm.moveFocus(.left)
+                    wm.curSpace.moveFocus(.left)
                     expect(swindlerState.state.focusedWindow).toEventually(equal(c.window))
 
                     swindlerState.mainScreen!.spaceId = spaceA
-                    expect(wm.curSpace).toEventually(equal(spaceA))
+                    expect(wm.curSpaceId).toEventually(equal(spaceA))
                     // FIXME: This is brittle :(
                     // focusedWindow must be updated after the space, so we have a way to
                     // observe that the wm saw it.
                     fakeApp.focusedWindow = b
                     expect(wm.focus).toNotEventually(beNil())
 
-                    wm.moveFocus(.left)
+                    wm.curSpace.moveFocus(.left)
                     expect(swindlerState.state.focusedWindow).toEventually(equal(a.window))
                 }
             }
