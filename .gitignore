@@ -51,3 +51,9 @@ Icon
 
 ## Thumbnails
 ._*
+
+# Vim
+
+*~
+*.swp
+*.swo
