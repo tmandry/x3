@@ -14,7 +14,7 @@ extension TreeWrapper {
     /// Use this when modifying the tree. It always ensures refresh is called.
     func with(_ f: (Tree) -> Void) -> Void {
         f(self.tree)
-        self.tree.refresh()
+        //self.tree.refresh()
     }
 
     /// Use this when only inspecting the tree. You must not modify the tree using the return value

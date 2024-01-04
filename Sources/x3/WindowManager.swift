@@ -30,7 +30,21 @@ public final class WindowManager: Encodable, Decodable {
 
     var spaces: [Int: TreeLayout] = [:]
     var curSpaceId: Int
-    var curSpace: TreeLayout { spaces[curSpaceId]! }
+    var curSpace: TreeLayout {
+        // scheduleRefresh()
+        return spaces[curSpaceId]!
+    }
+
+    var refreshScheduled: Bool = false
+    private func scheduleRefresh() {
+        if !refreshScheduled {
+            DispatchQueue.main.async {
+                self.refreshScheduled = false
+                self.spaces[self.curSpaceId]!.forceRefresh()
+                self.raiseFocus()
+            }
+        }
+    }
 
     // Since we can't see windows from other spaces when first starting, we have
     // to recover spaces lazily, holding onto their recovery data until
@@ -322,7 +336,7 @@ public final class WindowManager: Encodable, Decodable {
     }
 
     private func raiseFocus() {
-        guard let focus = focus,
+        guard let focus = spaces[curSpaceId]!.focus,
               case .window(let windowNode) = focus.node else {
             return
         }

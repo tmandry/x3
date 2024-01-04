@@ -78,15 +78,19 @@ class WindowManagerSpec: QuickSpec {
             }
 
             it("follows external changes to window focus") {
+                print("a")
                 wm.curSpace.addWindow(a.window)
                 wm.curSpace.addWindow(b.window)
                 wm.curSpace.addWindow(c.window)
                 wm.curSpace.addWindow(d.window)
 
+                print("b")
                 expect(fakeApp.mainWindow).toEventually(equal(d))
                 fakeApp.mainWindow = a
+                print("c")
                 expect(wm.curSpace.focusedWindow).toEventually(equal(a.window))
                 wm.curSpace.moveFocus(.right)
+                print("d")
                 expect(fakeApp.mainWindow).toEventually(equal(b))
             }
 
